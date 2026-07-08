@@ -39,10 +39,10 @@ class Offers
     #[ORM\Column]
     private ?bool $is_remote = null;
 
-    #[ORM\Column(type: Types::NUMBER, nullable: true)]
+    #[ORM\Column(type: Types::INTEGER, nullable: true)]
     private ?Number $latitude = null;
 
-    #[ORM\Column(type: Types::NUMBER, nullable: true)]
+    #[ORM\Column(type: Types::INTEGER, nullable: true)]
     private ?Number $longitude = null;
 
     #[ORM\Column]
@@ -54,10 +54,10 @@ class Offers
     #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
     private ?\DateTime $ends_at = null;
 
-    #[ORM\Column(type: Types::NUMBER, nullable: true)]
+    #[ORM\Column(type: Types::INTEGER, nullable: true)]
     private ?Number $salary_min = null;
 
-    #[ORM\Column(type: Types::NUMBER, nullable: true)]
+    #[ORM\Column(type: Types::INTEGER, nullable: true)]
     private ?Number $salary_max = null;
 
     #[ORM\Column(length: 3, nullable: true)]
@@ -85,7 +85,7 @@ class Offers
     #[ORM\Column]
     private ?bool $is_duplicate = null;
 
-    #[ORM\Column(type: Types::NUMBER)]
+    #[ORM\Column(type: Types::INTEGER)]
     private ?Number $views_count = null;
 
     #[ORM\Column]
