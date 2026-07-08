@@ -29,12 +29,12 @@ class UserFavorites
         return $this->id;
     }
 
-    public function getUserId(): ?users
+    public function getUserId(): ?user
     {
         return $this->user_id;
     }
 
-    public function setUserId(?users $user_id): static
+    public function setUserId(?user $user_id): static
     {
         $this->user_id = $user_id;
 
