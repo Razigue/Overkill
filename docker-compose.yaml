@@ -39,9 +39,10 @@ services:
   database:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB must be set in your local .env file}
-      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set in your local .env file}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in your local .env file}
+      POSTGRES_REMOTE_HOST: ${POSTGRES_REMOTE_HOST}
+      POSTGRES_REMOTE_DB: ${POSTGRES_REMOTE_DB}
+      POSTGRES_REMOTE_USER: ${POSTGRES_REMOTE_USER}
+      POSTGRES_REMOTE_PASSWORD: ${POSTGRES_REMOTE_PASSWORD}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
