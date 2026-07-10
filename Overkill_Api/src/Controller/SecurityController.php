@@ -17,17 +17,18 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class SecurityController extends AbstractController
 {
-    #[Route('/api/register', name:'api_register', methods: ['POST'])]
+
+    #[Route('/api/register', name: 'api_register', methods: ['POST'])]
     public function register(
         #[MapRequestPayload] RegistrationInput $input, // DTO
         UserPasswordHasherInterface $passwordHasher,
         EntityManagerInterface $entityManager,
         UserRepository $userRepository
-    ): JsonResponse
-    {
+    ): JsonResponse {
         $existingUser = $userRepository->findOneBy(['email' => $input->email]);
 
         if ($existingUser) {
@@ -58,5 +59,23 @@ final class SecurityController extends AbstractController
                 'lastname' => $user->getLastName(),
             ]
         ], Response::HTTP_CREATED);
+    }
+    #[Route('/api/login', name: 'api_login', methods: ['POST'])]
+    public function login(#[CurrentUser] ?User $user): JsonResponse {
+        if ($user === null) {
+            return $this->json(
+                ['error' => 'Les champs sont invalides'],
+                Response::HTTP_UNAUTHORIZED
+            );
+        }
+        return $this->json([
+            'message' => 'Utilisateur connecté avec succès !',
+            'user' => [
+                'id' => $user->getId(),
+                'email' => $user->getEmail(),
+                'firstname' => $user->getFirstName(),
+                'lastname' => $user->getLastName(),
+            ]
+        ], Response::HTTP_OK);
     }
 }
