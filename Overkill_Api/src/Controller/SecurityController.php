@@ -22,6 +22,29 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 final class SecurityController extends AbstractController
 {
 
+#[Route('/api/check/database', methods:['POST'], name:'api_check_database')]
+public function database(EntityManagerInterface $em): Response
+{
+    try {
+        // ->connect() now is protected thus deprecated
+        // ->isConnected() as no transaction response is null
+        // Otherwise throws exception
+        $connected = ! $em->getConnection()->isConnected();
+        return $this->json([
+            'status' => $em->getConnection()->isConnected(),
+            'message' => $connected ? 'connected.' : 'failed.'
+        ]);
+
+    } catch (\Exception $e) {
+        return $this->json([
+            'status'  => false,
+            'message' => 'Connect to database failed - Check connection params.',
+            'error'   => $e->getMessage()
+        ]);
+    }
+}
+
+
     #[Route('/api/register', name: 'api_register', methods: ['POST'])]
     public function register(
         #[MapRequestPayload] RegistrationInput $input, // DTO
