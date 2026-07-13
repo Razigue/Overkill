@@ -1,10 +1,6 @@
 import logo from '../assets/images/Overkill_Logo.png'
 
-function Header() {
-  const Login = () => {
-    // TODO: Brancher ici l'appel API ou la redirection de connexion.
-  }
-
+function Header({ onLogin }) {
   const Register = () => {
     // TODO: Brancher ici l'appel API ou la redirection d'inscription.
   }
@@ -31,7 +27,7 @@ function Header() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={Login}
+            onClick={onLogin}
             className="rounded-md border-2 border-black bg-white px-4 py-2 text-sm font-semibold text-black transition hover:-translate-y-0.5 hover:shadow-md"
           >
             Se connecter

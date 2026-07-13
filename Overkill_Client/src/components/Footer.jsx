@@ -1,18 +1,10 @@
 import logo from '../assets/images/Overkill_Logo.png'
 
 function Footer() {
-  const Login = () => {
-    // TODO: Brancher ici l'appel API ou la redirection de connexion.
-  }
-
-  const Register = () => {
-    // TODO: Brancher ici l'appel API ou la redirection d'inscription.
-  }
-
   return (
     <footer className="w-full border-t border-gray-200 bg-white">
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_auto] md:items-start">
+        <div className="grid gap-10 md:grid-cols-[1.4fr_1fr] md:items-start">
           <div className="max-w-sm">
             <a href="/" className="inline-flex items-center gap-3" aria-label="Overkill accueil">
               <img src={logo} alt="Overkill" className="h-14 w-14 object-contain" />
@@ -44,23 +36,6 @@ function Footer() {
                 </a>
               </li>
             </ul>
-          </div>
-
-          <div className="flex flex-col gap-3 md:items-end">
-            <button
-              type="button"
-              onClick={Register}
-              className="inline-flex justify-center rounded-md border-2 border-black bg-[#d2915c] px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-md"
-            >
-              S'inscrire
-            </button>
-            <button
-              type="button"
-              onClick={Login}
-              className="inline-flex justify-center rounded-md border-2 border-black bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:-translate-y-0.5 hover:shadow-md"
-            >
-              Se connecter
-            </button>
           </div>
         </div>
 
