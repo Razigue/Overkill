@@ -28,7 +28,7 @@ class Offers
 
     #[ORM\ManyToOne(inversedBy: 'tied_offers')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?companies $company_id = null;
+    private ?Companies $company_id = null;
 
     #[ORM\Column(length: 120, nullable: true)]
     private ?string $city = null;
@@ -67,9 +67,9 @@ class Offers
     private ?string $contract = null;
 
     /**
-     * @var Collection<int, categories>
+     * @var Collection<int, Categories>
      */
-    #[ORM\ManyToMany(targetEntity: categories::class, inversedBy: 'tied_categories')]
+    #[ORM\ManyToMany(targetEntity: Categories::class, inversedBy: 'tied_categories')]
     private Collection $category_id;
 
     #[ORM\Column(type: Types::SIMPLE_ARRAY)]
@@ -77,7 +77,7 @@ class Offers
 
     #[ORM\ManyToOne(inversedBy: 'tied_sources')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?sources $source_id = null;
+    private ?Sources $source_id = null;
 
     #[ORM\Column(type: Types::TEXT)]
     private ?string $external_url = null;
@@ -140,12 +140,12 @@ class Offers
         return $this;
     }
 
-    public function getCompanyId(): ?companies
+    public function getCompanyId(): ?Companies
     {
         return $this->company_id;
     }
 
-    public function setCompanyId(?companies $company_id): static
+    public function setCompanyId(?Companies $company_id): static
     {
         $this->company_id = $company_id;
 
@@ -297,14 +297,14 @@ class Offers
     }
 
     /**
-     * @return Collection<int, categories>
+     * @return Collection<int, Categories>
      */
     public function getCategoryId(): Collection
     {
         return $this->category_id;
     }
 
-    public function addCategoryId(categories $categoryId): static
+    public function addCategoryId(Categories $categoryId): static
     {
         if (!$this->category_id->contains($categoryId)) {
             $this->category_id->add($categoryId);
@@ -313,7 +313,7 @@ class Offers
         return $this;
     }
 
-    public function removeCategoryId(categories $categoryId): static
+    public function removeCategoryId(Categories $categoryId): static
     {
         $this->category_id->removeElement($categoryId);
 
@@ -332,12 +332,12 @@ class Offers
         return $this;
     }
 
-    public function getSourceId(): ?sources
+    public function getSourceId(): ?Sources
     {
         return $this->source_id;
     }
 
-    public function setSourceId(?sources $source_id): static
+    public function setSourceId(?Sources $source_id): static
     {
         $this->source_id = $source_id;
 
