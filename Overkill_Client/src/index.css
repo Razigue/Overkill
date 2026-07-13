@@ -1,1 +1,33 @@
 @import "tailwindcss";
+
+@keyframes login-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes login-backdrop-in {
+  from {
+    background-color: rgb(0 0 0 / 0);
+    backdrop-filter: blur(0);
+  }
+
+  to {
+    background-color: rgb(0 0 0 / 0.3);
+    backdrop-filter: blur(12px);
+  }
+}
+
+.animate-login-in {
+  animation: login-in 220ms ease-out both;
+}
+
+.animate-login-backdrop-in {
+  animation: login-backdrop-in 220ms ease-out both;
+}

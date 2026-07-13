@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Footer from '../components/Footer'
 import Header from '../components/Header'
 import Background from '../assets/images/Overkill_Background.png'
 
 function Accueil() {
+  const [isLoginOpen, setIsLoginOpen] = useState(false)
+  const [isLoginClosing, setIsLoginClosing] = useState(false)
   const [searchForm, setSearchForm] = useState({
     query: '',
     location: '',
@@ -25,9 +27,38 @@ function Accueil() {
     console.log('Recherche offres', searchForm)
   }
 
+  const handleLoginSubmit = (event) => {
+    event.preventDefault()
+    // TODO: Brancher ici l'appel API de connexion.
+  }
+
+  const openLogin = () => {
+    setIsLoginClosing(false)
+    setIsLoginOpen(true)
+  }
+
+  const closeLogin = () => {
+    setIsLoginClosing(true)
+    window.setTimeout(() => {
+      setIsLoginOpen(false)
+      setIsLoginClosing(false)
+    }, 220)
+  }
+
+  useEffect(() => {
+    if (!isLoginOpen) return undefined
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') closeLogin()
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isLoginOpen])
+
   return (
     <div className="min-h-screen bg-[#faf7f4] text-[#171717]">
-      <Header />
+      <Header onLogin={openLogin} />
 
       <main>
         <section
@@ -175,6 +206,73 @@ function Accueil() {
       </main>
 
       <Footer />
+
+      {/* Espace de connexion */}
+      {isLoginOpen && (
+        <div
+          className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md transition-all duration-200 ease-out ${
+            isLoginClosing ? 'bg-black/0 backdrop-blur-none' : 'animate-login-backdrop-in bg-black/30'
+          }`}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="login-title"
+          onClick={closeLogin}
+        >
+          <form
+            className={`w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl transition-all duration-200 ease-out sm:p-8 ${
+              isLoginClosing ? 'translate-y-3 scale-95 opacity-0' : 'animate-login-in'
+            }`}
+            onClick={(event) => event.stopPropagation()}
+            onSubmit={handleLoginSubmit}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-bold uppercase text-[#d2915c]">Bienvenue</p>
+                <h2 id="login-title" className="mt-1 text-2xl font-black text-black">
+                  Se connecter
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={closeLogin}
+                className="rounded-md px-2 text-3xl leading-none text-gray-500 transition hover:bg-gray-100 hover:text-black"
+                aria-label="Fermer la fenêtre de connexion"
+              >
+                ×
+              </button>
+            </div>
+
+            <label className="mt-6 block">
+              <span className="mb-2 block text-sm font-semibold text-gray-700">Adresse e-mail</span>
+              <input
+                type="email"
+                required
+                autoComplete="email"
+                placeholder="ton@email.com"
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10"
+              />
+            </label>
+
+            <label className="mt-4 block">
+              <span className="mb-2 block text-sm font-semibold text-gray-700">Mot de passe</span>
+              <input
+                type="password"
+                required
+                autoComplete="current-password"
+                placeholder="••••••••"
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10"
+              />
+            </label>
+
+            <button
+              type="submit"
+              className="mt-6 w-full rounded-xl bg-black px-4 py-3 text-sm font-bold text-white transition hover:bg-[#d2915c]"
+            >
+              Connexion
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   )
 }
