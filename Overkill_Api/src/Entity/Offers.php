@@ -3,7 +3,6 @@
 namespace App\Entity;
 
 use App\Repository\OffersRepository;
-use BcMath\Number;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -40,10 +39,10 @@ class Offers
     private ?bool $is_remote = null;
 
     #[ORM\Column(type: Types::INTEGER, nullable: true)]
-    private ?Number $latitude = null;
+    private ?int $latitude = null;
 
     #[ORM\Column(type: Types::INTEGER, nullable: true)]
-    private ?Number $longitude = null;
+    private ?int $longitude = null;
 
     #[ORM\Column]
     private ?\DateTimeImmutable $published_at = null;
@@ -55,10 +54,10 @@ class Offers
     private ?\DateTime $ends_at = null;
 
     #[ORM\Column(type: Types::INTEGER, nullable: true)]
-    private ?Number $salary_min = null;
+    private ?int $salary_min = null;
 
     #[ORM\Column(type: Types::INTEGER, nullable: true)]
-    private ?Number $salary_max = null;
+    private ?int $salary_max = null;
 
     #[ORM\Column(length: 3, nullable: true)]
     private ?string $salary_currency = null;
@@ -86,7 +85,7 @@ class Offers
     private ?bool $is_duplicate = null;
 
     #[ORM\Column(type: Types::INTEGER)]
-    private ?Number $views_count = null;
+    private ?int $views_count = null;
 
     #[ORM\Column]
     private ?\DateTimeImmutable $created_at = null;
@@ -188,24 +187,24 @@ class Offers
         return $this;
     }
 
-    public function getLatitude(): ?Number
+    public function getLatitude(): ?int
     {
         return $this->latitude;
     }
 
-    public function setLatitude(?Number $latitude): static
+    public function setLatitude(?int $latitude): static
     {
         $this->latitude = $latitude;
 
         return $this;
     }
 
-    public function getLongitude(): ?Number
+    public function getLongitude(): ?int
     {
         return $this->longitude;
     }
 
-    public function setLongitude(?Number $longitude): static
+    public function setLongitude(?int $longitude): static
     {
         $this->longitude = $longitude;
 
@@ -248,24 +247,24 @@ class Offers
         return $this;
     }
 
-    public function getSalaryMin(): ?Number
+    public function getSalaryMin(): ?int
     {
         return $this->salary_min;
     }
 
-    public function setSalaryMin(?Number $salary_min): static
+    public function setSalaryMin(?int $salary_min): static
     {
         $this->salary_min = $salary_min;
 
         return $this;
     }
 
-    public function getSalaryMax(): ?Number
+    public function getSalaryMax(): ?int
     {
         return $this->salary_max;
     }
 
-    public function setSalaryMax(?Number $salary_max): static
+    public function setSalaryMax(?int $salary_max): static
     {
         $this->salary_max = $salary_max;
 
@@ -368,12 +367,12 @@ class Offers
         return $this;
     }
 
-    public function getViewsCount(): ?Number
+    public function getViewsCount(): ?int
     {
         return $this->views_count;
     }
 
-    public function setViewsCount(Number $views_count): static
+    public function setViewsCount(int $views_count): static
     {
         $this->views_count = $views_count;
 
