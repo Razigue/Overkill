@@ -2,10 +2,17 @@ import { useEffect, useState } from 'react'
 import Footer from '../components/Footer'
 import Header from '../components/Header'
 import Background from '../assets/images/Overkill_Background.png'
+import eyeIcon from '../assets/icons/eye.svg'
+import eyeOffIcon from '../assets/icons/eye-off.svg'
 
 function Accueil() {
   const [isLoginOpen, setIsLoginOpen] = useState(false)
   const [isLoginClosing, setIsLoginClosing] = useState(false)
+  const [isRegisterOpen, setIsRegisterOpen] = useState(false)
+  const [isRegisterClosing, setIsRegisterClosing] = useState(false)
+  const [isLoginPasswordVisible, setIsLoginPasswordVisible] = useState(false)
+  const [isRegisterPasswordVisible, setIsRegisterPasswordVisible] = useState(false)
+  const [isRegisterPasswordConfirmationVisible, setIsRegisterPasswordConfirmationVisible] = useState(false)
   const [searchForm, setSearchForm] = useState({
     query: '',
     location: '',
@@ -32,6 +39,11 @@ function Accueil() {
     // TODO: Brancher ici l'appel API de connexion.
   }
 
+  const handleRegisterSubmit = (event) => {
+    event.preventDefault()
+    // TODO: Brancher ici l'appel API d'inscription.
+  }
+
   const openLogin = () => {
     setIsLoginClosing(false)
     setIsLoginOpen(true)
@@ -42,6 +54,19 @@ function Accueil() {
     window.setTimeout(() => {
       setIsLoginOpen(false)
       setIsLoginClosing(false)
+    }, 220)
+  }
+
+  const openRegister = () => {
+    setIsRegisterClosing(false)
+    setIsRegisterOpen(true)
+  }
+
+  const closeRegister = () => {
+    setIsRegisterClosing(true)
+    window.setTimeout(() => {
+      setIsRegisterOpen(false)
+      setIsRegisterClosing(false)
     }, 220)
   }
 
@@ -56,9 +81,20 @@ function Accueil() {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isLoginOpen])
 
+  useEffect(() => {
+    if (!isRegisterOpen) return undefined
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') closeRegister()
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isRegisterOpen])
+
   return (
     <div className="min-h-screen bg-[#faf7f4] text-[#171717]">
-      <Header onLogin={openLogin} />
+      <Header onLogin={openLogin} onRegister={openRegister} />
 
       <main>
         <section
@@ -255,13 +291,15 @@ function Accueil() {
 
             <label className="mt-4 block">
               <span className="mb-2 block text-sm font-semibold text-gray-700">Mot de passe</span>
-              <input
-                type="password"
-                required
-                autoComplete="current-password"
-                placeholder="••••••••"
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10"
-              />
+              <div className="relative">
+                <input
+                  type={isLoginPasswordVisible ? 'text' : 'password'}
+                  required
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 pr-12 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10"
+                />
+              </div>
             </label>
 
             <button
@@ -269,6 +307,77 @@ function Accueil() {
               className="mt-6 w-full rounded-xl bg-black px-4 py-3 text-sm font-bold text-white transition hover:bg-[#d2915c]"
             >
               Connexion
+            </button>
+          </form>
+        </div>
+      )}
+
+      {isRegisterOpen && (
+        <div
+          className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md transition-all duration-200 ease-out ${
+            isRegisterClosing ? 'bg-black/0 backdrop-blur-none' : 'animate-login-backdrop-in bg-black/30'
+          }`}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="register-title"
+          onClick={closeRegister}
+        >
+          <form
+            className={`w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl transition-all duration-200 ease-out sm:p-8 ${
+              isRegisterClosing ? 'translate-y-3 scale-95 opacity-0' : 'animate-login-in'
+            }`}
+            onClick={(event) => event.stopPropagation()}
+            onSubmit={handleRegisterSubmit}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-bold uppercase text-[#d2915c]">Rejoins-nous</p>
+                <h2 id="register-title" className="mt-1 text-2xl font-black text-black">Créer un compte</h2>
+              </div>
+              <button type="button" onClick={closeRegister} className="rounded-md px-2 text-3xl leading-none text-gray-500 transition hover:bg-gray-100 hover:text-black" aria-label="Fermer la fenêtre d'inscription">
+                ×
+              </button>
+            </div>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold text-gray-700">Prénom</span>
+                <input type="text" name="firstName" required autoComplete="given-name" placeholder="Prénom" className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold text-gray-700">Nom</span>
+                <input type="text" name="lastName" required autoComplete="family-name" placeholder="Nom" className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
+              </label>
+            </div>
+
+            <label className="mt-4 block">
+              <span className="mb-2 block text-sm font-semibold text-gray-700">Adresse e-mail</span>
+              <input type="email" required autoComplete="email" placeholder="ton@email.com" className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
+            </label>
+
+            <label className="mt-4 block">
+              <span className="mb-2 block text-sm font-semibold text-gray-700">Mot de passe</span>
+              <div className="relative">
+                <input type={isRegisterPasswordVisible ? 'text' : 'password'} name="password" required minLength="8" autoComplete="new-password" placeholder="8 caractères minimum" className="w-full rounded-xl border border-gray-200 px-4 py-3 pr-12 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
+                <button type="button" onClick={() => setIsRegisterPasswordVisible((visible) => !visible)} className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-gray-500 transition hover:text-black" aria-label={isRegisterPasswordVisible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
+                  <img src={isRegisterPasswordVisible ? eyeIcon : eyeOffIcon} alt="" className="h-5 w-5" />
+                </button>
+              </div>
+            </label>
+
+            <label className="mt-4 block">
+              <span className="mb-2 block text-sm font-semibold text-gray-700">Confirmer le mot de passe</span>
+              <div className="relative">
+                <input type={isRegisterPasswordConfirmationVisible ? 'text' : 'password'} name="passwordConfirmation" required minLength="8" autoComplete="new-password" placeholder="Répète ton mot de passe" className="w-full rounded-xl border border-gray-200 px-4 py-3 pr-12 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
+                <button type="button" onClick={() => setIsRegisterPasswordConfirmationVisible((visible) => !visible)} className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-gray-500 transition hover:text-black" aria-label={isRegisterPasswordConfirmationVisible ? 'Masquer la confirmation du mot de passe' : 'Afficher la confirmation du mot de passe'}>
+                  <img src={isRegisterPasswordConfirmationVisible ? eyeIcon : eyeOffIcon} alt="" className="h-5 w-5" />
+                </button>
+              </div>
+            </label>
+
+            <button type="submit" className="mt-6 w-full rounded-xl bg-[#d2915c] px-4 py-3 text-sm font-bold text-white transition hover:bg-black">
+              Créer mon compte
             </button>
           </form>
         </div>
