@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: OffersRepository::class)]
 class Offers
@@ -103,6 +104,7 @@ class Offers
         return $this->id;
     }
 
+    #[Groups('offers:read')]
     public function getTitle(): ?string
     {
         return $this->title;
@@ -114,7 +116,7 @@ class Offers
 
         return $this;
     }
-
+    #[Groups('offers:read')]
     public function getKind(): ?string
     {
         return $this->kind;
@@ -126,7 +128,7 @@ class Offers
 
         return $this;
     }
-
+    #[Groups('offers:read')]
     public function getDescription(): ?string
     {
         return $this->description;
@@ -138,7 +140,7 @@ class Offers
 
         return $this;
     }
-
+    #[Groups('offers:read')]
     public function getCompanyId(): ?Companies
     {
         return $this->company_id;
@@ -150,7 +152,7 @@ class Offers
 
         return $this;
     }
-
+    #[Groups('offers:read')]
     public function getCity(): ?string
     {
         return $this->city;
@@ -162,7 +164,7 @@ class Offers
 
         return $this;
     }
-
+    #[Groups('offers:read')]
     public function getCountry(): ?string
     {
         return $this->country;
@@ -174,7 +176,7 @@ class Offers
 
         return $this;
     }
-
+    #[Groups('offers:read')]
     public function isRemote(): ?bool
     {
         return $this->is_remote;
@@ -186,7 +188,11 @@ class Offers
 
         return $this;
     }
+<<<<<<< HEAD
 
+=======
+    #[Groups('offers:read')]
+>>>>>>> 7ecb873 (fix: OffersController can now get all data from an offers)
     public function getLatitude(): ?int
     {
         return $this->latitude;
@@ -198,7 +204,11 @@ class Offers
 
         return $this;
     }
+<<<<<<< HEAD
 
+=======
+    #[Groups('offers:read')]
+>>>>>>> 7ecb873 (fix: OffersController can now get all data from an offers)
     public function getLongitude(): ?int
     {
         return $this->longitude;
@@ -210,7 +220,7 @@ class Offers
 
         return $this;
     }
-
+    #[Groups('offers:read')]
     public function getPublishedAt(): ?\DateTimeImmutable
     {
         return $this->published_at;
@@ -222,7 +232,7 @@ class Offers
 
         return $this;
     }
-
+    #[Groups('offers:read')]
     public function getStartsAt(): ?\DateTime
     {
         return $this->starts_at;
@@ -234,7 +244,7 @@ class Offers
 
         return $this;
     }
-
+    #[Groups('offers:read')]
     public function getEndsAt(): ?\DateTime
     {
         return $this->ends_at;
@@ -246,7 +256,11 @@ class Offers
 
         return $this;
     }
+<<<<<<< HEAD
 
+=======
+    #[Groups('offers:read')]
+>>>>>>> 7ecb873 (fix: OffersController can now get all data from an offers)
     public function getSalaryMin(): ?int
     {
         return $this->salary_min;
@@ -258,7 +272,11 @@ class Offers
 
         return $this;
     }
+<<<<<<< HEAD
 
+=======
+    #[Groups('offers:read')]
+>>>>>>> 7ecb873 (fix: OffersController can now get all data from an offers)
     public function getSalaryMax(): ?int
     {
         return $this->salary_max;
@@ -270,7 +288,7 @@ class Offers
 
         return $this;
     }
-
+    #[Groups('offers:read')]
     public function getSalaryCurrency(): ?string
     {
         return $this->salary_currency;
@@ -282,7 +300,7 @@ class Offers
 
         return $this;
     }
-
+    #[Groups('offers:read')]
     public function getContract(): ?string
     {
         return $this->contract;
@@ -298,6 +316,7 @@ class Offers
     /**
      * @return Collection<int, Categories>
      */
+    #[Groups('offers:read')]
     public function getCategoryId(): Collection
     {
         return $this->category_id;
@@ -318,7 +337,7 @@ class Offers
 
         return $this;
     }
-
+    #[Groups('offers:read')]
     public function getExtractedSkills(): array
     {
         return $this->extracted_skills;
@@ -330,7 +349,7 @@ class Offers
 
         return $this;
     }
-
+    #[Groups('offers:read')]
     public function getSourceId(): ?Sources
     {
         return $this->source_id;
@@ -342,7 +361,7 @@ class Offers
 
         return $this;
     }
-
+    #[Groups('offers:read')]
     public function getExternalUrl(): ?string
     {
         return $this->external_url;
@@ -354,7 +373,7 @@ class Offers
 
         return $this;
     }
-
+    #[Groups('offers:read')]
     public function isDuplicate(): ?bool
     {
         return $this->is_duplicate;
@@ -366,7 +385,11 @@ class Offers
 
         return $this;
     }
+<<<<<<< HEAD
 
+=======
+    #[Groups('offers:read')]
+>>>>>>> 7ecb873 (fix: OffersController can now get all data from an offers)
     public function getViewsCount(): ?int
     {
         return $this->views_count;
@@ -378,7 +401,7 @@ class Offers
 
         return $this;
     }
-
+    #[Groups('offers:read')]
     public function getCreatedAt(): ?\DateTimeImmutable
     {
         return $this->created_at;
@@ -390,7 +413,7 @@ class Offers
 
         return $this;
     }
-
+    #[Groups('offers:read')]
     public function getUpdatedAt(): ?\DateTimeImmutable
     {
         return $this->updated_at;
