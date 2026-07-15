@@ -188,11 +188,7 @@ class Offers
 
         return $this;
     }
-<<<<<<< HEAD
-
-=======
     #[Groups('offers:read')]
->>>>>>> 7ecb873 (fix: OffersController can now get all data from an offers)
     public function getLatitude(): ?int
     {
         return $this->latitude;
@@ -204,11 +200,7 @@ class Offers
 
         return $this;
     }
-<<<<<<< HEAD
-
-=======
     #[Groups('offers:read')]
->>>>>>> 7ecb873 (fix: OffersController can now get all data from an offers)
     public function getLongitude(): ?int
     {
         return $this->longitude;
@@ -256,11 +248,7 @@ class Offers
 
         return $this;
     }
-<<<<<<< HEAD
-
-=======
     #[Groups('offers:read')]
->>>>>>> 7ecb873 (fix: OffersController can now get all data from an offers)
     public function getSalaryMin(): ?int
     {
         return $this->salary_min;
@@ -272,11 +260,7 @@ class Offers
 
         return $this;
     }
-<<<<<<< HEAD
-
-=======
     #[Groups('offers:read')]
->>>>>>> 7ecb873 (fix: OffersController can now get all data from an offers)
     public function getSalaryMax(): ?int
     {
         return $this->salary_max;
@@ -385,11 +369,6 @@ class Offers
 
         return $this;
     }
-<<<<<<< HEAD
-
-=======
-    #[Groups('offers:read')]
->>>>>>> 7ecb873 (fix: OffersController can now get all data from an offers)
     public function getViewsCount(): ?int
     {
         return $this->views_count;
