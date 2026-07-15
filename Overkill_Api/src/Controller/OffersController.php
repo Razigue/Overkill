@@ -17,3 +17,8 @@ final class OffersController extends AbstractController
         return $this->json($existingoffers, 200, [], ['groups' => 'offers:read']);
     }
 }
+
+    #[Route('/api/offers', name: 'api_offers', methods: ['POST'])]
+    public function setOffer(OffersRepository $offers): JsonResponse {
+        
+    }
