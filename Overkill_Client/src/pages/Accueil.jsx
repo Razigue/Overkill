@@ -39,9 +39,53 @@ function Accueil() {
     // TODO: Brancher ici l'appel API de connexion.
   }
 
-  const handleRegisterSubmit = (event) => {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordConfirmation, setPasswordConfirmation] = useState('');
+
+  const handleRegisterSubmit = async (event) => {
     event.preventDefault()
-    // TODO: Brancher ici l'appel API d'inscription.
+
+    if (password !== passwordConfirmation) {
+      alert("Les mots de passe ne correspondent pas.")
+      return
+    }
+
+    try {
+      const response = await fetch('http://localhost:8000/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstName: firstName,
+          lastName: lastName,
+          email: email,
+          password: password,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        alert('Inscription réussie, vous pouvez maintenant vous connecter.');
+
+        setFirstName('');
+        setLastName('');
+        setEmail('');
+        setPassword('');
+        setPasswordConfirmation('');
+
+        closeRegister();
+      } else {
+        alert(data.error || "Une erreur est survenue.")
+      }
+    } catch (error) {
+      console.error("Erreur API :", error)
+      alert("Impossible de contacter le serveur.")
+    }
   }
 
   const openLogin = () => {
@@ -342,24 +386,24 @@ function Accueil() {
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               <label className="block">
                 <span className="mb-2 block text-sm font-semibold text-gray-700">Prénom</span>
-                <input type="text" name="firstName" required autoComplete="given-name" placeholder="Prénom" className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
+                <input type="text" value={firstName} onChange={(event) => setFirstName(event.target.value)} name="firstName" required autoComplete="given-name" placeholder="Prénom" className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
               </label>
 
               <label className="block">
                 <span className="mb-2 block text-sm font-semibold text-gray-700">Nom</span>
-                <input type="text" name="lastName" required autoComplete="family-name" placeholder="Nom" className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
+                <input type="text" value={lastName} onChange={(event) => setLastName(event.target.value)} name="lastName" required autoComplete="family-name" placeholder="Nom" className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
               </label>
             </div>
 
             <label className="mt-4 block">
               <span className="mb-2 block text-sm font-semibold text-gray-700">Adresse e-mail</span>
-              <input type="email" required autoComplete="email" placeholder="ton@email.com" className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
+              <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required autoComplete="email" placeholder="ton@email.com" className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
             </label>
 
             <label className="mt-4 block">
               <span className="mb-2 block text-sm font-semibold text-gray-700">Mot de passe</span>
               <div className="relative">
-                <input type={isRegisterPasswordVisible ? 'text' : 'password'} name="password" required minLength="8" autoComplete="new-password" placeholder="8 caractères minimum" className="w-full rounded-xl border border-gray-200 px-4 py-3 pr-12 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
+                <input type={isRegisterPasswordVisible ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} name="password" required minLength="8" autoComplete="new-password" placeholder="8 caractères minimum" className="w-full rounded-xl border border-gray-200 px-4 py-3 pr-12 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
                 <button type="button" onClick={() => setIsRegisterPasswordVisible((visible) => !visible)} className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-gray-500 transition hover:text-black" aria-label={isRegisterPasswordVisible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
                   <img src={isRegisterPasswordVisible ? eyeIcon : eyeOffIcon} alt="" className="h-5 w-5" />
                 </button>
@@ -369,7 +413,7 @@ function Accueil() {
             <label className="mt-4 block">
               <span className="mb-2 block text-sm font-semibold text-gray-700">Confirmer le mot de passe</span>
               <div className="relative">
-                <input type={isRegisterPasswordConfirmationVisible ? 'text' : 'password'} name="passwordConfirmation" required minLength="8" autoComplete="new-password" placeholder="Répète ton mot de passe" className="w-full rounded-xl border border-gray-200 px-4 py-3 pr-12 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
+                <input type={isRegisterPasswordConfirmationVisible ? 'text' : 'password'} value={passwordConfirmation} onChange={(event) => setPasswordConfirmation(event.target.value)} name="passwordConfirmation" required minLength="8" autoComplete="new-password" placeholder="Répète ton mot de passe" className="w-full rounded-xl border border-gray-200 px-4 py-3 pr-12 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
                 <button type="button" onClick={() => setIsRegisterPasswordConfirmationVisible((visible) => !visible)} className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-gray-500 transition hover:text-black" aria-label={isRegisterPasswordConfirmationVisible ? 'Masquer la confirmation du mot de passe' : 'Afficher la confirmation du mot de passe'}>
                   <img src={isRegisterPasswordConfirmationVisible ? eyeIcon : eyeOffIcon} alt="" className="h-5 w-5" />
                 </button>
