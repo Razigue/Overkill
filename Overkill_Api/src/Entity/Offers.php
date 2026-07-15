@@ -194,4 +194,221 @@ class Offers
 
         return $this;
     }
+  
+    #[Groups('offers:read')]
+    public function getLatitude(): ?int
+    {
+        return $this->latitude;
+    }
+
+    public function setLatitude(?int $latitude): static
+    {
+        $this->latitude = $latitude;
+
+        return $this;
+    }
+    #[Groups('offers:read')]
+    public function getLongitude(): ?int
+    {
+        return $this->longitude;
+    }
+
+    public function setLongitude(?int $longitude): static
+    {
+        $this->longitude = $longitude;
+
+        return $this;
+    }
+    #[Groups('offers:read')]
+    public function getPublishedAt(): ?\DateTimeImmutable
+    {
+        return $this->published_at;
+    }
+
+    public function setPublishedAt(\DateTimeImmutable $published_at): static
+    {
+        $this->published_at = $published_at;
+
+        return $this;
+    }
+    #[Groups('offers:read')]
+    public function getStartsAt(): ?\DateTime
+    {
+        return $this->starts_at;
+    }
+
+    public function setStartsAt(\DateTime $starts_at): static
+    {
+        $this->starts_at = $starts_at;
+
+        return $this;
+    }
+    #[Groups('offers:read')]
+    public function getEndsAt(): ?\DateTime
+    {
+        return $this->ends_at;
+    }
+
+    public function setEndsAt(?\DateTime $ends_at): static
+    {
+        $this->ends_at = $ends_at;
+
+        return $this;
+    }
+    #[Groups('offers:read')]
+    public function getSalaryMin(): ?int
+    {
+        return $this->salary_min;
+    }
+
+    public function setSalaryMin(?int $salary_min): static
+    {
+        $this->salary_min = $salary_min;
+
+        return $this;
+    }
+    #[Groups('offers:read')]
+    public function getSalaryMax(): ?int
+    {
+        return $this->salary_max;
+    }
+
+    public function setSalaryMax(?int $salary_max): static
+    {
+        $this->salary_max = $salary_max;
+
+        return $this;
+    }
+    #[Groups('offers:read')]
+    public function getSalaryCurrency(): ?string
+    {
+        return $this->salary_currency;
+    }
+
+    public function setSalaryCurrency(?string $salary_currency): static
+    {
+        $this->salary_currency = $salary_currency;
+
+        return $this;
+    }
+    #[Groups('offers:read')]
+    public function getContract(): ?string
+    {
+        return $this->contract;
+    }
+
+    public function setContract(string $contract): static
+    {
+        $this->contract = $contract;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Categories>
+     */
+    #[Groups('offers:read')]
+    public function getCategoryId(): Collection
+    {
+        return $this->category_id;
+    }
+
+    public function addCategoryId(Categories $categoryId): static
+    {
+        if (!$this->category_id->contains($categoryId)) {
+            $this->category_id->add($categoryId);
+        }
+
+        return $this;
+    }
+
+    public function removeCategoryId(Categories $categoryId): static
+    {
+        $this->category_id->removeElement($categoryId);
+
+        return $this;
+    }
+    #[Groups('offers:read')]
+    public function getExtractedSkills(): array
+    {
+        return $this->extracted_skills;
+    }
+
+    public function setExtractedSkills(array $extracted_skills): static
+    {
+        $this->extracted_skills = $extracted_skills;
+
+        return $this;
+    }
+    #[Groups('offers:read')]
+    public function getSourceId(): ?Sources
+    {
+        return $this->source_id;
+    }
+
+    public function setSourceId(?Sources $source_id): static
+    {
+        $this->source_id = $source_id;
+
+        return $this;
+    }
+    #[Groups('offers:read')]
+    public function getExternalUrl(): ?string
+    {
+        return $this->external_url;
+    }
+
+    public function setExternalUrl(string $external_url): static
+    {
+        $this->external_url = $external_url;
+
+        return $this;
+    }
+    #[Groups('offers:read')]
+    public function isDuplicate(): ?bool
+    {
+        return $this->is_duplicate;
+    }
+
+    public function setIsDuplicate(bool $is_duplicate): static
+    {
+        $this->is_duplicate = $is_duplicate;
+
+        return $this;
+    }
+    public function getViewsCount(): ?int
+    {
+        return $this->views_count;
+    }
+
+    public function setViewsCount(int $views_count): static
+    {
+        $this->views_count = $views_count;
+
+        return $this;
+    }
+    #[Groups('offers:read')]
+    public function getCreatedAt(): ?\DateTimeImmutable
+    {
+        return $this->created_at;
+    }
+
+    public function setCreatedAt(\DateTimeImmutable $created_at): static
+    {
+        $this->created_at = $created_at;
+
+        return $this;
+    }
+    #[Groups('offers:read')]
+    public function getUpdatedAt(): ?\DateTimeImmutable
+    {
+        return $this->updated_at;
+    }
+
+    public function setUpdatedAt(\DateTimeImmutable $updated_at): static
+    {
+        $this->updated_at = $updated_at;
+
+        return $this;
+    }
 }

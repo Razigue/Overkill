@@ -17,3 +17,5 @@ final class OffersController extends AbstractController
         return $this->json($existingoffers, 200, [], ['groups' => 'offers:read']);
     }
 }
+
+  
