@@ -18,7 +18,4 @@ final class OffersController extends AbstractController
     }
 }
 
-    #[Route('/api/offers', name: 'api_offers', methods: ['POST'])]
-    public function setOffer(OffersRepository $offers): JsonResponse {
-        
-    }
+  
