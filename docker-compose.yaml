@@ -10,6 +10,7 @@ services:
       APP_SECRET: ${APP_SECRET:?APP_SECRET must be set in your local .env file}
       DATABASE_URL: ${POSTGRES_REMOTE_URL:?POSTGRES_REMOTE_URL must be set in your local .env file}
       MESSENGER_TRANSPORT_DSN: ${MESSENGER_TRANSPORT_DSN:-doctrine://default?auto_setup=0}
+      CORS_ALLOW_ORIGIN: ${CORS_ALLOW_ORIGIN:-http://localhost:5173}
     volumes:
       - ./Overkill_Api:/app
       - backend_vendor:/app/vendor
