@@ -116,6 +116,7 @@ class Offers
 
         return $this;
     }
+
     #[Groups('offers:read')]
     public function getKind(): ?string
     {
@@ -128,6 +129,7 @@ class Offers
 
         return $this;
     }
+
     #[Groups('offers:read')]
     public function getDescription(): ?string
     {
@@ -140,6 +142,7 @@ class Offers
 
         return $this;
     }
+
     #[Groups('offers:read')]
     public function getCompanyId(): ?Companies
     {
@@ -152,6 +155,7 @@ class Offers
 
         return $this;
     }
+
     #[Groups('offers:read')]
     public function getCity(): ?string
     {
@@ -164,6 +168,7 @@ class Offers
 
         return $this;
     }
+
     #[Groups('offers:read')]
     public function getCountry(): ?string
     {
@@ -176,6 +181,7 @@ class Offers
 
         return $this;
     }
+
     #[Groups('offers:read')]
     public function isRemote(): ?bool
     {
@@ -188,6 +194,7 @@ class Offers
 
         return $this;
     }
+  
     #[Groups('offers:read')]
     public function getLatitude(): ?int
     {

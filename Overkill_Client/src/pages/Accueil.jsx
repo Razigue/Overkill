@@ -18,6 +18,14 @@ function Accueil() {
     location: '',
     contractType: '',
   })
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordConfirmation, setPasswordConfirmation] = useState('');
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
+  const [user, setUser] = useState(null)
 
   const handleSearchChange = (event) => {
     const { name, value } = event.target
@@ -34,16 +42,40 @@ function Accueil() {
     console.log('Recherche offres', searchForm)
   }
 
-  const handleLoginSubmit = (event) => {
+  const handleLoginSubmit = async (event) => {
     event.preventDefault()
-    // TODO: Brancher ici l'appel API de connexion.
-  }
 
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [passwordConfirmation, setPasswordConfirmation] = useState('');
+    try {
+      const response = await fetch('http://localhost:8000/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: loginEmail,
+          password: loginPassword,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        alert(`Ravi de vous revoir, ${data.user.firstname} !`)
+
+        localStorage.setItem('user', JSON.stringify(data.user));
+        setUser(data.user)
+
+        setLoginEmail('')
+        setLoginPassword('')
+        closeLogin()
+      } else {
+        alert(data.error || "Identifiant incorrects.")
+      }
+    } catch (error) {
+      console.error("Erreur API :", error)
+      alert("Impossible de contacter le serveur.")
+    }
+  }
 
   const handleRegisterSubmit = async (event) => {
     event.preventDefault()
@@ -86,6 +118,12 @@ function Accueil() {
       console.error("Erreur API :", error)
       alert("Impossible de contacter le serveur.")
     }
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('user')
+    setUser(null)
+    alert("Vous avez été déconnecté.")
   }
 
   const openLogin = () => {
@@ -136,9 +174,17 @@ function Accueil() {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isRegisterOpen])
 
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user')
+    if (savedUser) {
+      setUser(JSON.parse(savedUser))
+    }
+
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#faf7f4] text-[#171717]">
-      <Header onLogin={openLogin} onRegister={openRegister} />
+      <Header user={user} onLogin={openLogin} onRegister={openRegister} onLogout={handleLogout} />
 
       <main>
         <section
@@ -289,71 +335,83 @@ function Accueil() {
 
       {/* Espace de connexion */}
       {isLoginOpen && (
-        <div
-          className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md transition-all duration-200 ease-out ${
-            isLoginClosing ? 'bg-black/0 backdrop-blur-none' : 'animate-login-backdrop-in bg-black/30'
-          }`}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="login-title"
-          onClick={closeLogin}
-        >
-          <form
-            className={`w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl transition-all duration-200 ease-out sm:p-8 ${
-              isLoginClosing ? 'translate-y-3 scale-95 opacity-0' : 'animate-login-in'
-            }`}
-            onClick={(event) => event.stopPropagation()}
-            onSubmit={handleLoginSubmit}
+          <div
+              className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md transition-all duration-200 ease-out ${
+                  isLoginClosing ? 'bg-black/0 backdrop-blur-none' : 'animate-login-backdrop-in bg-black/30'
+              }`}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="login-title"
+              onClick={closeLogin}
           >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-bold uppercase text-[#d2915c]">Bienvenue</p>
-                <h2 id="login-title" className="mt-1 text-2xl font-black text-black">
-                  Se connecter
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={closeLogin}
-                className="rounded-md px-2 text-3xl leading-none text-gray-500 transition hover:bg-gray-100 hover:text-black"
-                aria-label="Fermer la fenêtre de connexion"
-              >
-                ×
-              </button>
-            </div>
-
-            <label className="mt-6 block">
-              <span className="mb-2 block text-sm font-semibold text-gray-700">Adresse e-mail</span>
-              <input
-                type="email"
-                required
-                autoComplete="email"
-                placeholder="ton@email.com"
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10"
-              />
-            </label>
-
-            <label className="mt-4 block">
-              <span className="mb-2 block text-sm font-semibold text-gray-700">Mot de passe</span>
-              <div className="relative">
-                <input
-                  type={isLoginPasswordVisible ? 'text' : 'password'}
-                  required
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 pr-12 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10"
-                />
-              </div>
-            </label>
-
-            <button
-              type="submit"
-              className="mt-6 w-full rounded-xl bg-black px-4 py-3 text-sm font-bold text-white transition hover:bg-[#d2915c]"
+            <form
+                className={`w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl transition-all duration-200 ease-out sm:p-8 ${
+                    isLoginClosing ? 'translate-y-3 scale-95 opacity-0' : 'animate-login-in'
+                }`}
+                onClick={(event) => event.stopPropagation()}
+                onSubmit={handleLoginSubmit}
             >
-              Connexion
-            </button>
-          </form>
-        </div>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-bold uppercase text-[#d2915c]">Bienvenue</p>
+                  <h2 id="login-title" className="mt-1 text-2xl font-black text-black">
+                    Se connecter
+                  </h2>
+                </div>
+                <button
+                    type="button"
+                    onClick={closeLogin}
+                    className="rounded-md px-2 text-3xl leading-none text-gray-500 transition hover:bg-gray-100 hover:text-black"
+                    aria-label="Fermer la fenêtre de connexion"
+                >
+                  ×
+                </button>
+              </div>
+
+              <label className="mt-6 block">
+                <span className="mb-2 block text-sm font-semibold text-gray-700">Adresse e-mail</span>
+                <input
+                    type="email"
+                    value={loginEmail}
+                    onChange={(event) => setLoginEmail(event.target.value)}
+                    required
+                    autoComplete="email"
+                    placeholder="ton@email.com"
+                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10"
+                />
+              </label>
+
+              <label className="mt-4 block">
+                <span className="mb-2 block text-sm font-semibold text-gray-700">Mot de passe</span>
+                <div className="relative">
+                  <input
+                      type={isLoginPasswordVisible ? 'text' : 'password'}
+                      value={loginPassword}
+                      onChange={(event) => setLoginPassword(event.target.value)}
+                      required
+                      autoComplete="current-password"
+                      placeholder="••••••••"
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 pr-12 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10"
+                  />
+                  <button
+                      type="button"
+                      onClick={() => setIsLoginPasswordVisible((visible) => !visible)}
+                      className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-gray-500 transition hover:text-black"
+                      aria-label={isLoginPasswordVisible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  >
+                    <img src={isLoginPasswordVisible ? eyeIcon : eyeOffIcon} alt="" className="h-5 w-5" />
+                  </button>
+                </div>
+              </label>
+
+              <button
+                  type="submit"
+                  className="mt-6 w-full rounded-xl bg-black px-4 py-3 text-sm font-bold text-white transition hover:bg-[#d2915c]"
+              >
+                Connexion
+              </button>
+            </form>
+          </div>
       )}
 
       {isRegisterOpen && (
