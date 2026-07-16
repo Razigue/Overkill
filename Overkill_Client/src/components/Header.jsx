@@ -26,7 +26,7 @@ function Header({ user, onLogin, onRegister, onLogout }) {
                   {/* Utilisateur connecté */}
                   <button
                       type="button"
-                      onClick={() => console.log('Direction profil')}
+                      onClick={() => window.location.href = '/profil'}
                       className="text-sm font-semibold text-gray-700 transition hover:text-black px-2"
                   >
                     Mon profil
