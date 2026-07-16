@@ -47,7 +47,16 @@ final class OffersController extends AbstractController
         if ($source == null) {
             return $this->json("La source reçu ne correspond à rien",   Response::HTTP_NOT_FOUND);
         }
-
+    
+        $foundCategories = [];
+    foreach($input->category_id as $category_id) {
+       $foundCategories[] = $category = $categories->find($category_id);
+        
+        if ($category == null) {
+            return $this->json("La catégorie ne correspond à rien", Response::HTTP_NOT_FOUND);
+        }
+    }
+    
 
     }, Response::HTTP_CREATED;
 
