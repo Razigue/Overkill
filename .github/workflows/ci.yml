@@ -1,0 +1,66 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  secrets-scan:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Téléchargement et extraction locale (sans sudo, sans wget)
+      - name: Install Gitleaks CLI Locally
+        run: |
+          curl -sSLo gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.18.2/gitleaks_8.18.2_linux_x64.tar.gz
+          tar -xf gitleaks.tar.gz
+          chmod +x gitleaks
+
+      # Analyse en ciblant directement le binaire local
+      - name: Run Gitleaks Analysis
+        run: ./gitleaks detect --verbose --redact || true
+
+  test-backend:
+    needs: secrets-scan
+    runs-on: self-hosted 
+    env:
+      APP_ENV: test # Force Symfony à utiliser la configuration de test (.env.test)
+      # On force Doctrine à utiliser SQLite en local pour les tests
+      DATABASE_URL: "sqlite:///%kernel.project_dir%/var/data.db"
+    steps:
+      - uses: actions/checkout@v4
+
+      # Configurer PHP sur ton runner local
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql
+          coverage: none
+
+      # Installation sans exécuter les scripts automatiques
+      - name: Install Dependencies
+        working-directory: ./Overkill_Api
+        run: composer install --no-progress --prefer-dist --no-scripts
+
+      # Réinitialiser proprement la base de données en ciblant Overkill_Api
+      - name: Prepare Database for Tests
+        working-directory: ./Overkill_Api
+        run: |
+          php bin/console doctrine:schema:update --force --env=test
+
+      # Exécuter PHPUnit depuis le bon dossier
+      - name: Run Backend Tests
+        working-directory: ./Overkill_Api
+        run: vendor/bin/phpunit

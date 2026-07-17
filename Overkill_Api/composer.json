@@ -106,6 +106,7 @@
         "symfony/debug-bundle": "8.1.*",
         "symfony/maker-bundle": "^1.0",
         "symfony/stopwatch": "8.1.*",
+        "symfony/test-pack": "*",
         "symfony/web-profiler-bundle": "8.1.*"
     }
 }
