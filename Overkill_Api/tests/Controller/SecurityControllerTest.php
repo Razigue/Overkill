@@ -3,7 +3,8 @@
 namespace App\Tests\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use App\Repository\UserRepository;
+use App\Entity\User;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class SecurityControllerTest extends WebTestCase
 {
@@ -11,8 +12,23 @@ class SecurityControllerTest extends WebTestCase
     public function testLoginSuccess(): void
     {
         $client = static::createClient();
+        $container = static::getContainer();
 
-        // On simule une requête POST de login
+        // 1. Créer et insérer l'utilisateur de test dans la base SQLite vide
+        $entityManager = $container->get('doctrine')->getManager();
+        $passwordHasher = $container->get(UserPasswordHasherInterface::class);
+
+        $user = new User();
+        $user->setEmail('user@epitech.eu');
+        
+        // On hache le mot de passe pour que Symfony puisse le valider
+        $hashedPassword = $passwordHasher->hashPassword($user, 'password123');
+        $user->setPassword($hashedPassword);
+
+        $entityManager->persist($user);
+        $entityManager->flush();
+
+        // On simule la requête POST de login
         $client->request(
             'POST',
             '/api/login',
