@@ -36,6 +36,8 @@ jobs:
     runs-on: self-hosted 
     env:
       APP_ENV: test # Force Symfony à utiliser la configuration de test (.env.test)
+      # On force Doctrine à utiliser SQLite en local pour les tests (évite les erreurs de version de serveur)
+      DATABASE_URL: "sqlite:///%kernel.project_dir%/var/data.db"
     steps:
       - uses: actions/checkout@v4
 
@@ -47,7 +49,7 @@ jobs:
           extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql
           coverage: none
 
-      # Installation SANS exécuter les scripts automatiques de cache (évite le crash Doctrine)
+      # Installation sans exécuter les scripts automatiques
       - name: Install Dependencies
         working-directory: ./Overkill_Api
         run: composer install --no-progress --prefer-dist --no-scripts
