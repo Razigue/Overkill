@@ -62,7 +62,7 @@ function Contact() {
               <article className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">
                 <p className="text-sm font-bold text-[#d2915c]">Email</p>
                 <p className="mt-2 text-base font-bold text-black">contact@overkill.fr</p>
-                <p className="mt-1 text-sm text-gray-600">Pour toute question ou demande d&apos;information.</p>
+                <p className="mt-1 text-sm text-gray-600">Pour toute question ou demande d'information.</p>
               </article>
               <article className="rounded-2xl bg-[#ebc09d] p-5 ring-1 ring-black/5">
                 <p className="text-sm font-bold text-black">Disponibilité</p>
@@ -74,7 +74,6 @@ function Contact() {
 
           <div className="rounded-2xl bg-white p-6 shadow-xl shadow-black/5 ring-1 ring-black/5 sm:p-8">
             <div className="flex items-start gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#ebc09d] text-xl font-black">?</div>
               <div>
                 <h2 className="text-2xl font-black text-black">Envoyer un message</h2>
                 <p className="mt-1 text-sm leading-6 text-gray-600">Expliquez-nous votre demande, nous reviendrons vers vous rapidement.</p>
@@ -83,7 +82,7 @@ function Contact() {
 
             {isSent ? (
               <div className="mt-7 rounded-xl border border-[#d2915c]/30 bg-[#faf7f4] p-5 text-sm leading-6 text-gray-700" role="status">
-                Merci, votre message a bien été préparé. Vous pourrez connecter ici votre service d&apos;envoi.
+                Merci, votre message a bien été envoyé.
               </div>
             ) : (
               <form className="mt-7 grid gap-5 sm:grid-cols-2" onSubmit={handleSubmit}>
