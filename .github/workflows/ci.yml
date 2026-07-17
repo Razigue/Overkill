@@ -1,62 +1,71 @@
-name: CI/CD Pipeline
+name: CI Pipeline
 
 on:
   push:
-    branches:
-      - '**'
+    branches: [ "main"]
   pull_request:
-    branches:
-      - main
-  workflow_dispatch:
-
-permissions:
-  contents: read
+    branches: [ "main"]
 
 jobs:
-  secrets-scan:
-    runs-on: self-hosted
+  backend-tests:
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      # Téléchargement et extraction locale (sans sudo, sans wget)
-      - name: Install Gitleaks CLI Locally
-        run: |
-          curl -sSLo gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.18.2/gitleaks_8.18.2_linux_x64.tar.gz
-          tar -xf gitleaks.tar.gz
-          chmod +x gitleaks
-
-      # Analyse en ciblant directement le binaire local
-      - name: Run Gitleaks Analysis
-        run: ./gitleaks detect --verbose --redact || true
-
-  test-backend:
-    needs: secrets-scan
-    runs-on: self-hosted 
-    env:
-      APP_ENV: test # Force Symfony à utiliser la configuration de test (.env.test)
-    steps:
-      - uses: actions/checkout@v4
-
-      # Configurer PHP sur ton runner local
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
-          extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql
-          coverage: none
+          php-version: '8.3' # Ajuste selon ta version de Symfony
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite
+          coverage: xdebug
 
-      # Installer les dépendances via Composer (inclut le test-pack)
-      - name: Install Dependencies
-        run: composer install --no-progress --prefer-dist
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+        working-directory: ./Overkill_Api
 
-      # Réinitialiser proprement la base de données de test à chaque passage
-      - name: Prepare Database for Tests
-        run: |
-          php bin/console doctrine:database:create --env=test --if-not-exists
-          php bin/console doctrine:schema:update --force --env=test
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps:composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
 
-      # Exécuter PHPUnit 
-      - name: Run Backend Tests
+      - name: Install Composer Dependencies
+        run: composer install --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+        working-directory: ./Overkill_Api
+
+      - name: Run PHPStan
+        run: vendor/bin/phpstan analyse src
+        working-directory: ./Overkill_Api
+
+      - name: Run PHPUnit Tests
         run: vendor/bin/phpunit
+        working-directory: ./Overkill_Api
+
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: ./Overkill_Client/package-lock.json
+
+      - name: Install Node Dependencies
+        run: npm ci
+        working-directory: ./Overkill_Client
+
+      - name: Run ESLint
+        run: npm run lint
+        working-directory: ./Overkill_Client
+
+      - name: Build React App (Vite)
+        run: npm run build
+        working-directory: ./Overkill_Client
