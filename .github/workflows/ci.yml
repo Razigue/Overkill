@@ -20,16 +20,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Téléchargement direct du binaire officiel Gitleaks (sans passer par l'action payante)
-      - name: Install Gitleaks CLI
+      # Téléchargement et extraction locale (sans sudo, sans wget)
+      - name: Install Gitleaks CLI Locally
         run: |
-          wget https://github.com/gitleaks/gitleaks/releases/download/v8.18.2/gitleaks_8.18.2_linux_x64.tar.gz
-          tar -xf gitleaks_8.18.2_linux_x64.tar.gz
-          sudo mv gitleaks /usr/local/bin/
+          curl -sSLo gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.18.2/gitleaks_8.18.2_linux_x64.tar.gz
+          tar -xf gitleaks.tar.gz
+          chmod +x gitleaks
 
-      # Analyse du dépôt (Mode détection standard et gratuit)
+      # Analyse en ciblant directement le binaire local
       - name: Run Gitleaks Analysis
-        run: gitleaks detect --verbose --redact
+        run: ./gitleaks detect --verbose --redact
 
   test-backend:
     needs: secrets-scan
