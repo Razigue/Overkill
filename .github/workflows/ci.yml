@@ -1,0 +1,53 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  secrets-scan:
+    runs-on: self-hosted 
+    steps:
+      - uses: actions/checkout@v4 
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test-backend:
+    needs: secrets-scan
+    runs-on: self-hosted
+    env:
+      APP_ENV: test # Indique à Symfony qu'on est en mode test
+    steps:
+      - uses: actions/checkout@v4
+
+      # Configurer PHP sur le runner self-hosted
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2' # À adapter selon la version de ton groupe
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql
+
+      # Installer les dépendances Symfony (dont le test-pack)
+      - name: Install Dependencies
+        run: composer install --no-progress --prefer-dist
+
+      # Préparer la base de données pour WebTestCase
+      - name: Prepare Database for Tests
+        run: |
+          php bin/console doctrine:database:create --env=test --if-not-exists
+          php bin/console doctrine:schema:update --force --env=test
+
+      # Lancer PHPUnit qui exécutera le WebTestCase
+      - name: Run Backend Tests
+        run: vendor/bin/phpunit
