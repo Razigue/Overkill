@@ -20,6 +20,8 @@ class SecurityControllerTest extends WebTestCase
 
         $user = new User();
         $user->setEmail('user@epitech.eu');
+        $user->setFirstName('Test'); 
+        $user->setLastName('User');
         
         // On hache le mot de passe pour que Symfony puisse le valider
         $hashedPassword = $passwordHasher->hashPassword($user, 'password123');
