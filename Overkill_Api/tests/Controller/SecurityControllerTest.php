@@ -14,7 +14,7 @@ class SecurityControllerTest extends WebTestCase
         $client = static::createClient();
         $container = static::getContainer();
 
-        // 1. Créer et insérer l'utilisateur de test dans la base SQLite vide
+        // Créer et insérer l'utilisateur de test dans la base SQLite vide
         $entityManager = $container->get('doctrine')->getManager();
         $passwordHasher = $container->get(UserPasswordHasherInterface::class);
 
@@ -46,8 +46,12 @@ class SecurityControllerTest extends WebTestCase
         // On s'attend à un statut HTTP 200 (ou 204 selon votre config)
         $this->assertResponseIsSuccessful();
         
-        // Si vous utilisez un token JWT, vous pouvez tester sa présence :
-        $responseData = json_decode($client->getResponse()->getContent(), true);
+        // --- SECTION DE DÉBOGAGE ---
+        $responseContent = $client->getResponse()->getContent();
+        echo "\n[DEBUG] Réponse reçue de /api/login : " . $responseContent . "\n";
+        // ---------------------------
+
+        $responseData = json_decode($responseContent, true);
         $this->assertArrayHasKey('token', $responseData);
     }
 
