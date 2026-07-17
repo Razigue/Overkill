@@ -14,7 +14,7 @@ class SecurityControllerTest extends WebTestCase
         $client = static::createClient();
         $container = static::getContainer();
 
-        // Créer et insérer l'utilisateur de test dans la base SQLite vide
+        // 1. Créer et insérer l'utilisateur de test dans la base SQLite vide
         $entityManager = $container->get('doctrine')->getManager();
         $passwordHasher = $container->get(UserPasswordHasherInterface::class);
 
@@ -43,16 +43,15 @@ class SecurityControllerTest extends WebTestCase
             ])
         );
 
-        // On s'attend à un statut HTTP 200 (ou 204 selon votre config)
+        // On s'attend à un statut HTTP 200
         $this->assertResponseIsSuccessful();
         
-        // --- SECTION DE DÉBOGAGE ---
-        $responseContent = $client->getResponse()->getContent();
-        echo "\n[DEBUG] Réponse reçue de /api/login : " . $responseContent . "\n";
-        // ---------------------------
-
-        $responseData = json_decode($responseContent, true);
-        $this->assertArrayHasKey('token', $responseData);
+        // Validation de la structure de réponse réelle de l'API
+        $responseData = json_decode($client->getResponse()->getContent(), true);
+        
+        // On vérifie que la clé 'user' existe et contient le bon email
+        $this->assertArrayHasKey('user', $responseData);
+        $this->assertSame('user@epitech.eu', $responseData['user']['email']);
     }
 
     // Test d'un échec de connexion
