@@ -36,7 +36,7 @@ jobs:
     runs-on: self-hosted 
     env:
       APP_ENV: test # Force Symfony à utiliser la configuration de test (.env.test)
-      # On force Doctrine à utiliser SQLite en local pour les tests (évite les erreurs de version de serveur)
+      # On force Doctrine à utiliser SQLite en local pour les tests
       DATABASE_URL: "sqlite:///%kernel.project_dir%/var/data.db"
     steps:
       - uses: actions/checkout@v4
@@ -58,7 +58,6 @@ jobs:
       - name: Prepare Database for Tests
         working-directory: ./Overkill_Api
         run: |
-          php bin/console doctrine:database:create --env=test --if-not-exists
           php bin/console doctrine:schema:update --force --env=test
 
       # Exécuter PHPUnit depuis le bon dossier
