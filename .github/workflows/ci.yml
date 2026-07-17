@@ -49,7 +49,6 @@ jobs:
 
       # Installer les dépendances via Composer dans le bon dossier
       - name: Install Dependencies
-        working-directory: ./Overkill_Api
         run: composer install --no-progress --prefer-dist
 
       # Réinitialiser proprement la base de données en ciblant Overkill_Api
