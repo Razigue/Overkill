@@ -47,9 +47,10 @@ jobs:
           extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql
           coverage: none
 
+      # Installation SANS exécuter les scripts automatiques de cache (évite le crash Doctrine)
       - name: Install Dependencies
         working-directory: ./Overkill_Api
-        run: composer install --no-progress --prefer-dist
+        run: composer install --no-progress --prefer-dist --no-scripts
 
       # Réinitialiser proprement la base de données en ciblant Overkill_Api
       - name: Prepare Database for Tests
