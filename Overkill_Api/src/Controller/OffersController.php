@@ -14,6 +14,9 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\HttpFoundation\Response;
+use App\Entity\Offers;
+use DateTime;
+use DateTimeImmutable;
 
 final class OffersController extends AbstractController
 {
@@ -25,7 +28,7 @@ final class OffersController extends AbstractController
     }
     
     #[Route('/api/offers', name: 'api_create_offers', methods: ['POST'])]
-    public function setOffer(
+    public function postOffer(
         #[MapRequestPayload]
         OfferInput $input,
         CompaniesRepository $companies,
@@ -57,7 +60,41 @@ final class OffersController extends AbstractController
         }
     }
     
+   $createOffer = new Offers();
+   $createOffer->setTitle($input->title);
+   $createOffer->setKind($input->kind);
+   $createOffer->setDescription($input->description);
+   $createOffer->setCompanyId($company);
+   $createOffer->setSourceId($source);
 
-    }, Response::HTTP_CREATED;
+   foreach($foundCategories as $category_id){
+    $createOffer->addCategoryId($category_id);
+   }
 
+   $createOffer->setCity($input->city);
+   $createOffer->setCountry($input->country);
+   $createOffer->setIsRemote($input->isRemote);
+   $createOffer->setSalaryMin($input->salaryMin);
+   $createOffer->setSalaryMax($input->salaryMax);
+   $createOffer->setSalaryCurrency($input->salaryCurrency);
+   $createOffer->setContract($input->contract);
+   $createOffer->setExtractedSkills($input->extractedSkills);
+   $createOffer->setExternalUrl($input->externalUrl);
+   $createOffer->setLatitude($input->latitude === null ? null : (int) $input->latitude);
+   $createOffer->setLongitude($input->longitude === null ? null : (int) $input->longitude);
+   $createOffer->setPublishedAt(new DateTimeImmutable($input->publishedAt));
+   $createOffer->setStartsAt(new DateTime($input->startsAt));
+   $createOffer->setEndsAt($input->endsAt === null ? null : new DateTime($input->endsAt));
+   $createOffer->setCreatedAt(new DateTimeImmutable());
+   $createOffer->setUpdatedAt(new DateTimeImmutable());
+   $createOffer->setIsDuplicate(false);
+   $createOffer->setViewsCount(0);
+   $entityManager->persist($createOffer);
+   $entityManager->flush();
+    return $this->json(
+            $createOffer,
+            Response::HTTP_CREATED,
+            [],
+            ['groups' => 'offers:read']);
+    }
 }
