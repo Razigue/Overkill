@@ -16,38 +16,44 @@ jobs:
   secrets-scan:
     runs-on: self-hosted 
     steps:
-      - uses: actions/checkout@v4 
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          install-only: true
+
+      # Exécute la détection directement en ligne de commande
+      - name: Run Gitleaks CLI
+        run: gitleaks detect --verbose --redact
 
   test-backend:
     needs: secrets-scan
-    runs-on: self-hosted
+    runs-on: self-hosted 
     env:
-      APP_ENV: test # Indique à Symfony qu'on est en mode test
+      APP_ENV: test # Force Symfony à utiliser la configuration de test (.env.test)
     steps:
       - uses: actions/checkout@v4
 
-      # Configurer PHP sur le runner self-hosted
+      # Configurer PHP sur ton runner local
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2' # À adapter selon la version de ton groupe
+          php-version: '8.2'
           extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql
+          coverage: none
 
-      # Installer les dépendances Symfony (dont le test-pack)
+      # Installer les dépendances via Composer (inclut le test-pack)
       - name: Install Dependencies
         run: composer install --no-progress --prefer-dist
 
-      # Préparer la base de données pour WebTestCase
+      # Réinitialiser proprement la base de données de test à chaque passage
       - name: Prepare Database for Tests
         run: |
           php bin/console doctrine:database:create --env=test --if-not-exists
           php bin/console doctrine:schema:update --force --env=test
 
-      # Lancer PHPUnit qui exécutera le WebTestCase
+      # Exécuter PHPUnit 
       - name: Run Backend Tests
         run: vendor/bin/phpunit
