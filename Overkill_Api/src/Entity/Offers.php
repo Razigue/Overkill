@@ -33,26 +33,26 @@ class Offers
     #[ORM\Column(length: 120, nullable: true)]
     private ?string $city = null;
 
-    #[ORM\Column(length: 2, nullable: true)]
+    #[ORM\Column(length: 120, nullable: true)]
     private ?string $country = null;
 
-    #[ORM\Column]
-    private ?bool $is_remote = null;
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $is_remote = null;
 
-    #[ORM\Column(type: Types::INTEGER, nullable: true)]
-    private ?int $latitude = null;
+    #[ORM\Column(type: Types::FLOAT, nullable: true)]
+    private ?float $latitude = null;
 
-    #[ORM\Column(type: Types::INTEGER, nullable: true)]
-    private ?int $longitude = null;
+    #[ORM\Column(type: Types::FLOAT, nullable: true)]
+    private ?float $longitude = null;
 
     #[ORM\Column]
     private ?\DateTimeImmutable $published_at = null;
 
-    #[ORM\Column(type: Types::DATE_MUTABLE)]
-    private ?\DateTime $starts_at = null;
+    #[ORM\Column]
+    private ?\DateTimeImmutable $starts_at = null;
 
-    #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
-    private ?\DateTime $ends_at = null;
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $ends_at = null;
 
     #[ORM\Column(type: Types::INTEGER, nullable: true)]
     private ?int $salary_min = null;
@@ -60,10 +60,10 @@ class Offers
     #[ORM\Column(type: Types::INTEGER, nullable: true)]
     private ?int $salary_max = null;
 
-    #[ORM\Column(length: 3, nullable: true)]
+    #[ORM\Column(length: 15, nullable: true)]
     private ?string $salary_currency = null;
 
-    #[ORM\Column(length: 10)]
+    #[ORM\Column(length: 25)]
     private ?string $contract = null;
 
     /**
