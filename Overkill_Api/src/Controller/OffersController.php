@@ -30,7 +30,7 @@ final class OffersController extends AbstractController
             'company'   => $request->query->get('company'),
             'contract'  => $request->query->get('contract'),
             'kind'      => $request->query->get('kind'),
-            'remote'    => $request->query->get('remote'),
+            /*    'remote'    => $request->query->get('remote'), */
             'salaryMin' => $request->query->get('salaryMin'),
             'category'  => $request->query->get('category'),
         ];
@@ -91,7 +91,7 @@ final class OffersController extends AbstractController
         $createOffer->setContract($input->contract);
         $createOffer->setExtractedSkills($input->extractedSkills);
         $createOffer->setExternalUrl($input->externalUrl);
-   
+
         $createOffer->setLatitude($input->latitude);
         $createOffer->setLongitude($input->longitude);
         $createOffer->setPublishedAt(new DateTimeImmutable($input->publishedAt));
@@ -135,7 +135,7 @@ final class OffersController extends AbstractController
     ): Response {
         $offer = $offers->find($id);
 
-        
+
         if ($offer === null) {
             return $this->json(
                 ['error' => 'Aucune offre trouvee'],
@@ -146,7 +146,7 @@ final class OffersController extends AbstractController
         $entityManager->remove($offer);
         $entityManager->flush();
 
-   
+
         return new Response(null, Response::HTTP_NO_CONTENT);
     }
 }
