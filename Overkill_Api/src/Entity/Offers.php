@@ -33,7 +33,7 @@ class Offers
     #[ORM\Column(length: 120, nullable: true)]
     private ?string $city = null;
 
-    #[ORM\Column(length: 2, nullable: true)]
+    #[ORM\Column(length: 120, nullable: true)]
     private ?string $country = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
@@ -60,10 +60,10 @@ class Offers
     #[ORM\Column(type: Types::INTEGER, nullable: true)]
     private ?int $salary_max = null;
 
-    #[ORM\Column(length: 3, nullable: true)]
+    #[ORM\Column(length: 15, nullable: true)]
     private ?string $salary_currency = null;
 
-    #[ORM\Column(length: 10)]
+    #[ORM\Column(length: 25)]
     private ?string $contract = null;
 
     /**
