@@ -36,8 +36,8 @@ class OfferInput
     #[Assert\Length(exactly: 2, exactMessage: "Le pays doit être un code ISO à 2 lettres.")]
     public ?string $country = null;
 
-    #[Assert\Type('bool')]
-    public bool $isRemote = false;
+    #[Assert\Choice(choices: ['onsite', 'hybrid', 'full_remote'])]
+    public ?string $isRemote = null;
 
 
     #[Assert\Range(min: -90, max: 90)]

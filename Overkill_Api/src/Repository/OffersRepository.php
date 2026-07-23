@@ -59,12 +59,10 @@ class OffersRepository extends ServiceEntityRepository
                 ->setParameter('kind', $filters['kind']);
         }
 
-        /*
-        if (isset($filters['remote']) && $filters['remote'] !== null) {
+        if (!empty($filters['remote'])) {
             $qb->andWhere('o.is_remote = :remote')
-                ->setParameter('remote', filter_var($filters['remote'], FILTER_VALIDATE_BOOL));
+                ->setParameter('remote', mb_strtolower($filters['remote']));
         }
-*/
 
         if (!empty($filters['salaryMin'])) {
             $qb->andWhere('COALESCE(o.salary_max, o.salary_min) >= :salaryMin')

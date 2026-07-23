@@ -30,7 +30,7 @@ final class OffersController extends AbstractController
             'company'   => $request->query->get('company'),
             'contract'  => $request->query->get('contract'),
             'kind'      => $request->query->get('kind'),
-            /*    'remote'    => $request->query->get('remote'), */
+            'remote'    => $request->query->get('remote'),
             'salaryMin' => $request->query->get('salaryMin'),
             'category'  => $request->query->get('category'),
         ];
@@ -95,8 +95,8 @@ final class OffersController extends AbstractController
         $createOffer->setLatitude($input->latitude);
         $createOffer->setLongitude($input->longitude);
         $createOffer->setPublishedAt(new DateTimeImmutable($input->publishedAt));
-        $createOffer->setStartsAt(new DateTime($input->startsAt));
-        $createOffer->setEndsAt($input->endsAt === null ? null : new DateTime($input->endsAt));
+        $createOffer->setStartsAt(new DateTimeImmutable($input->startsAt));
+        $createOffer->setEndsAt($input->endsAt === null ? null : new DateTimeImmutable($input->endsAt));
         $createOffer->setCreatedAt(new DateTimeImmutable());
         $createOffer->setUpdatedAt(new DateTimeImmutable());
         $createOffer->setIsDuplicate(false);

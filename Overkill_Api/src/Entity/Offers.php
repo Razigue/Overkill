@@ -183,12 +183,12 @@ class Offers
     }
 
     #[Groups('offers:read')]
-    public function isRemote(): ?bool
+    public function isRemote(): ?string
     {
         return $this->is_remote;
     }
 
-    public function setIsRemote(bool $is_remote): static
+    public function setIsRemote(string $is_remote): static
     {
         $this->is_remote = $is_remote;
 
@@ -196,24 +196,24 @@ class Offers
     }
   
     #[Groups('offers:read')]
-    public function getLatitude(): ?int
+    public function getLatitude(): ?float
     {
         return $this->latitude;
     }
 
-    public function setLatitude(?int $latitude): static
+    public function setLatitude(?float $latitude): static
     {
         $this->latitude = $latitude;
 
         return $this;
     }
     #[Groups('offers:read')]
-    public function getLongitude(): ?int
+    public function getLongitude(): ?float
     {
         return $this->longitude;
     }
 
-    public function setLongitude(?int $longitude): static
+    public function setLongitude(?float $longitude): static
     {
         $this->longitude = $longitude;
 
@@ -232,24 +232,24 @@ class Offers
         return $this;
     }
     #[Groups('offers:read')]
-    public function getStartsAt(): ?\DateTime
+    public function getStartsAt(): ?\DateTimeImmutable
     {
         return $this->starts_at;
     }
 
-    public function setStartsAt(\DateTime $starts_at): static
+    public function setStartsAt(\DateTimeImmutable $starts_at): static
     {
         $this->starts_at = $starts_at;
 
         return $this;
     }
     #[Groups('offers:read')]
-    public function getEndsAt(): ?\DateTime
+    public function getEndsAt(): ?\DateTimeImmutable
     {
         return $this->ends_at;
     }
 
-    public function setEndsAt(?\DateTime $ends_at): static
+    public function setEndsAt(?\DateTimeImmutable $ends_at): static
     {
         $this->ends_at = $ends_at;
 
