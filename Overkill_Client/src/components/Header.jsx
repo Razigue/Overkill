@@ -12,9 +12,22 @@ function Header({ user, onLogin, onRegister, onLogout }) {
             <a href="/communauté" className="text-sm font-semibold text-gray-900 transition hover:text-[#d2915c]">
               Communauté
             </a>
-            <a href="/ressources" className="text-sm font-semibold text-gray-900 transition hover:text-[#d2915c]">
-              Ressources
-            </a>
+            <div className="group relative">
+              <a href="/ressources" className="flex items-center gap-2 text-sm font-semibold text-gray-900 transition hover:text-[#d2915c]">
+                Ressources
+                <span aria-hidden="true">⌄</span>
+              </a>
+              <div className="invisible absolute left-0 top-full z-50 w-56 translate-y-1 pt-3 opacity-0 transition duration-150 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
+                <div className="rounded-xl bg-white p-2 shadow-xl ring-1 ring-black/10">
+                  <a href="/ressources/cv" className="block rounded-lg px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-[#faf7f4] hover:text-[#d2915c]">
+                    Guide CV
+                  </a>
+                  <a href="/ressources/offres" className="block rounded-lg px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-[#faf7f4] hover:text-[#d2915c]">
+                    Guide des offres
+                  </a>
+                </div>
+              </div>
+            </div>
             <a href="/contact" className="text-sm font-semibold text-gray-900 transition hover:text-[#d2915c]">
               Contact
             </a>
