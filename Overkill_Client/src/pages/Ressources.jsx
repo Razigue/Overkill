@@ -19,7 +19,8 @@ const resources = [
     number: '02',
     title: 'Trouver les offres qui vous correspondent',
     description: 'Apprenez à lire une offre, définir vos critères et concentrer vos candidatures au bon endroit.',
-    linkLabel: 'Guide des offres à venir',
+    link: '/ressources/offres',
+    linkLabel: 'Voir le guide des offres',
     topics: [
       'Définir les critères importants pour votre recherche.',
       'Comprendre les missions et compétences attendues.',
@@ -68,7 +69,7 @@ function Ressources() {
 
           <div className="mt-10 border-y border-gray-400">
             {resources.map((resource) => (
-              <details key={resource.number} className="group border-b border-gray-400 last:border-b-0" open={resource.number === '01'}>
+              <details key={resource.number} className="group border-b border-gray-400 last:border-b-0">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-6 text-left sm:py-7 [&::-webkit-details-marker]:hidden">
                   <div className="flex items-center gap-4 sm:gap-6">
                     <span className="text-sm font-bold text-[#d2915c]">{resource.number}</span>
@@ -94,7 +95,7 @@ function Ressources() {
                     ))}
                   </ul>
                   <div className="mt-6 flex sm:justify-end">
-                    <a href="#prochainement" className="inline-flex rounded-xl bg-black px-5 py-3 text-sm font-bold text-white transition hover:bg-[#d2915c]">
+                    <a href={resource.link || '#'} className="inline-flex rounded-xl bg-black px-5 py-3 text-sm font-bold text-white transition hover:bg-[#d2915c]">
                       {resource.linkLabel}
                     </a>
                   </div>
