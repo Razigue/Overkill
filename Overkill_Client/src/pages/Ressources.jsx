@@ -8,7 +8,8 @@ const resources = [
     number: '01',
     title: 'Construire un CV qui vous ressemble',
     description: 'Les bases pour présenter votre parcours, vos compétences et vos expériences de façon claire.',
-    linkLabel: 'Guide CV à venir',
+    link: '/ressources/cv',
+    linkLabel: 'Voir le guide CV',
     topics: [
       'Choisir une structure simple et facile à lire.',
       'Mettre en valeur vos expériences et compétences.',
