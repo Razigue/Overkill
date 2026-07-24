@@ -1,6 +1,8 @@
 import logo from '../assets/images/Overkill_Logo.png'
 
 function Header({ user, onLogin, onRegister, onLogout }) {
+  const currentUser = user || JSON.parse(localStorage.getItem('user') || 'null');
+
   return (
       <header className="w-full bg-white border-b border-gray-200">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -34,7 +36,7 @@ function Header({ user, onLogin, onRegister, onLogout }) {
           </nav>
 
           <div className="flex items-center gap-3">
-            {user ? (
+            {currentUser ? (
                 <>
                   {/* Utilisateur connecté */}
                   <a
