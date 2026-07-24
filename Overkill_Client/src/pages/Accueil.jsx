@@ -4,8 +4,10 @@ import Header from '../components/Header'
 import Background from '../assets/images/Overkill_Background.png'
 import eyeIcon from '../assets/icons/eye.svg'
 import eyeOffIcon from '../assets/icons/eye-off.svg'
+import { useNavigate } from 'react-router-dom';
 
 function Accueil() {
+  const navigate = useNavigate()
   const [isLoginOpen, setIsLoginOpen] = useState(false)
   const [isLoginClosing, setIsLoginClosing] = useState(false)
   const [isRegisterOpen, setIsRegisterOpen] = useState(false)
@@ -42,40 +44,55 @@ function Accueil() {
     console.log('Recherche offres', searchForm)
   }
 
-  const handleLoginSubmit = async (event) => {
-    event.preventDefault()
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
 
     try {
+      // 1. Appel du login avec "email"
       const response = await fetch('http://localhost:8000/api/login', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           email: loginEmail,
           password: loginPassword,
         }),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
-      if (response.ok) {
-        alert(`Ravi de vous revoir, ${data.user.firstname} !`)
-
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setUser(data.user)
-
-        setLoginEmail('')
-        setLoginPassword('')
-        closeLogin()
-      } else {
-        alert(data.error || "Identifiant incorrects.")
+      if (!response.ok) {
+        alert(data.message || 'Identifiants ou mot de passe incorrects.');
+        return;
       }
+
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+
+        // 2. On récupère le profil complet avec le token
+        const profileResponse = await fetch('http://localhost:8000/api/me', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${data.token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (profileResponse.ok) {
+          const userData = await profileResponse.json();
+          localStorage.setItem('user', JSON.stringify(userData));
+          setUser(userData);
+        }
+      }
+
+      closeLogin();
+
     } catch (error) {
-      console.error("Erreur API :", error)
-      alert("Impossible de contacter le serveur.")
+      console.error('Erreur API :', error);
+      alert('Impossible de contacter le serveur.');
     }
-  }
+  };
 
   const handleRegisterSubmit = async (event) => {
     event.preventDefault()
@@ -121,10 +138,11 @@ function Accueil() {
   }
 
   const handleLogout = () => {
-    localStorage.removeItem('user')
-    setUser(null)
-    alert("Vous avez été déconnecté.")
-  }
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    setUser(null);
+    alert("Vous avez été déconnecté.");
+  };
 
   const openLogin = () => {
     setIsLoginClosing(false)

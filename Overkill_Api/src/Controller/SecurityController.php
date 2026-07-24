@@ -101,4 +101,18 @@ public function database(EntityManagerInterface $em): Response
             ]
         ], Response::HTTP_OK);
     }
+
+    #[Route('/api/me', name: 'api_me', methods: ['GET'])]
+    public function me(#[CurrentUser] ?User $user): JsonResponse {
+        if ($user === null) {
+            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        return $this->json([
+            'id' => $user->getId(),
+            'email' => $user->getEmail(),
+            'firstname' => $user->getFirstName(),
+            'lastname' => $user->getLastName(),
+        ]);
+    }
 }
