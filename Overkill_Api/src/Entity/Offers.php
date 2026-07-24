@@ -183,18 +183,17 @@ class Offers
     }
 
     #[Groups('offers:read')]
-    public function isRemote(): ?string
+    public function getIsRemote(): ?array
     {
-        return $this->is_remote;
+        return $this->is_remote === null ? null : json_decode($this->is_remote, true);
     }
 
-    public function setIsRemote(string $is_remote): static
+    public function setIsRemote(?array $is_remote): static
     {
-        $this->is_remote = $is_remote;
-
+        $this->is_remote = $is_remote === null ? null : json_encode($is_remote);
         return $this;
     }
-  
+
     #[Groups('offers:read')]
     public function getLatitude(): ?float
     {

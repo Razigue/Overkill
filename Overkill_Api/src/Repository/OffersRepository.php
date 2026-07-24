@@ -60,8 +60,8 @@ class OffersRepository extends ServiceEntityRepository
         }
 
         if (!empty($filters['remote'])) {
-            $qb->andWhere('o.is_remote = :remote')
-                ->setParameter('remote', mb_strtolower($filters['remote']));
+            $qb->andWhere('o.is_remote LIKE :remote')
+                ->setParameter('remote', '%"frequency":"' . mb_strtolower($filters['remote']) . '"%');
         }
 
         if (!empty($filters['salaryMin'])) {
