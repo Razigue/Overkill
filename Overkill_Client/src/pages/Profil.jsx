@@ -9,6 +9,8 @@ function Profil() {
     const [activeTab, setActiveTab] = useState('cv')
     const [cvList, setCvList] = useState([])
     const [isUploading, setIsUploading] = useState(false)
+    const [skillsList, setSkillsList] = useState([])
+    const [newSkillName, setNewSkillName] = useState('')
 
     // 1. Récupération de l'utilisateur depuis le localStorage au chargement
     useEffect(() => {
@@ -43,6 +45,84 @@ function Profil() {
 
         } catch (error) {
             console.error("Erreur serveur lors de la récupération des CVs", error);
+        }
+    };
+
+    // Récupérer la liste des compétences depuis le Backend
+    const fetchSkills = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:8000/api/user/skills', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setSkillsList(data);
+            }
+        } catch (error) {
+            console.error("Erreur serveur lors de la récupération des skills", error);
+        }
+    };
+
+    // On recharge les skills quand l'onglet "skills" est actif
+    useEffect(() => {
+        if (activeTab === 'skills') {
+            fetchSkills();
+        }
+    }, [activeTab]);
+
+    // Ajouter une compétence
+    const handleAddSkill = async (e) => {
+        e.preventDefault();
+        if (!newSkillName.trim()) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:8000/api/user/skills', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ name: newSkillName })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setSkillsList((prev) => [...prev, data.skill]);
+                setNewSkillName('');
+            } else {
+                alert(data.error || "Erreur lors de l'ajout de la compétence.");
+            }
+        } catch (error) {
+            console.error("Erreur API :", error);
+            alert("Impossible d'ajouter la compétence.");
+        }
+    };
+
+    // Supprimer une compétence
+    const handleRemoveSkill = async (skillId) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`http://localhost:8000/api/user/skills/${skillId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                setSkillsList((prev) => prev.filter((skill) => skill.id !== skillId));
+            } else {
+                alert("Erreur lors de la suppression.");
+            }
+        } catch (error) {
+            console.error("Erreur API :", error);
         }
     };
 
@@ -221,8 +301,49 @@ function Profil() {
                     )}
 
                     {activeTab === 'skills' && (
-                        <div className="py-12 text-center text-gray-500">
-                            Section Mes Skills (À venir)
+                        <div className="mx-auto max-w-xl p-6">
+                            <h3 className="text-xl font-bold text-gray-800 mb-6 text-center">Gérer mes compétences</h3>
+
+                            {/* Formulaire d'ajout */}
+                            <form onSubmit={handleAddSkill} className="flex gap-2 mb-8">
+                                <input
+                                    type="text"
+                                    value={newSkillName}
+                                    onChange={(e) => setNewSkillName(e.target.value)}
+                                    placeholder="Ex: Symfony, React, Docker..."
+                                    className="flex-1 rounded-xl border border-gray-300 px-4 py-2 text-sm focus:border-[#d2915c] focus:outline-none focus:ring-1 focus:ring-[#d2915c]"
+                                />
+                                <button
+                                    type="submit"
+                                    className="rounded-xl bg-[#d2915c] px-6 py-2 text-sm font-bold text-white shadow transition hover:bg-[#b87a48]"
+                                >
+                                    Ajouter
+                                </button>
+                            </form>
+
+                            {/* Liste des badges/compétences */}
+                            <div className="flex flex-wrap gap-2 justify-center">
+                                {skillsList.length === 0 ? (
+                                    <p className="text-center text-sm text-gray-500">
+                                        Aucune compétence ajoutée pour le moment.
+                                    </p>
+                                ) : (
+                                    skillsList.map((skill) => (
+                                        <span
+                                            key={skill.id}
+                                            className="inline-flex items-center gap-2 rounded-full bg-purple-50 px-4 py-2 text-sm font-semibold text-purple-700 border border-purple-200 shadow-sm"
+                                        >{skill.name}
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveSkill(skill.id)}
+                                                className="text-purple-400 hover:text-red-500 font-bold ml-1"
+                                                title="Supprimer"
+                                            >&times;
+                                            </button>
+                                        </span>
+                                    ))
+                                )}
+                            </div>
                         </div>
                     )}
 
