@@ -36,8 +36,18 @@ class OfferInput
     #[Assert\Length(exactly: 2, exactMessage: "Le pays doit être un code ISO à 2 lettres.")]
     public ?string $country = null;
 
-    #[Assert\Type('bool')]
-    public bool $isRemote = false;
+    #[Assert\Collection(
+        fields: [
+            'frequency'   => new Assert\Optional([new Assert\Type('string')]),
+            'daysPerWeek' => new Assert\Optional([
+                new Assert\Type('int'),
+                new Assert\Range(min: 0, max: 7),
+            ]),
+        ],
+        allowExtraFields: true,
+        allowMissingFields: true,
+    )]
+    public ?array $isRemote = null;
 
 
     #[Assert\Range(min: -90, max: 90)]
