@@ -11,8 +11,11 @@ function Header({ user, onLogin, onRegister, onLogout }) {
           </a>
 
           <nav className="hidden items-center gap-10 md:flex" aria-label="Navigation principale">
-            <a href="/communauté" className="text-sm font-semibold text-gray-900 transition hover:text-[#d2915c]">
-              Communauté
+            <a href="/" className="text-sm font-semibold text-gray-900 transition hover:text-[#d2915c]">
+              Accueil
+            </a>
+            <a href="/feed" className="text-sm font-semibold text-gray-900 transition hover:text-[#d2915c]">
+              Offres
             </a>
             <div className="group relative">
               <a href="/ressources" className="flex items-center gap-2 text-sm font-semibold text-gray-900 transition hover:text-[#d2915c]">
