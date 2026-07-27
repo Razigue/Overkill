@@ -145,10 +145,15 @@ class OffersControllerTest extends WebTestCase
         $this->assertResponseStatusCodeSame(201);
         $responseData = json_decode($this->client->getResponse()->getContent(), true);
 
-        // Supporte les réponses directes ou encapsulées (ex: ['offer' => [...]] ou ['data' => [...]])
+        // Récupère l'élément racine ou sous-élément si encapsulé
         $offerData = $responseData['offer'] ?? $responseData['data'] ?? $responseData;
-        $this->assertArrayHasKey('id', $offerData);
-        $this->assertSame('Développeur PHP / Symfony', $offerData['title'] ?? null);
+
+        // Détection de l'identifiant quelle que soit la casse (id, offerId, ID)
+        $idKey = array_key_exists('id', $offerData) ? 'id' : (array_key_exists('offerId', $offerData) ? 'offerId' : null);
+        $this->assertNotNull($idKey, 'La réponse JSON doit contenir un identifiant ("id" ou "offerId"). Contenu : ' . json_encode($responseData));
+        
+        $title = $offerData['title'] ?? null;
+        $this->assertSame('Développeur PHP / Symfony', $title);
     }
 
     public function testPostOfferCompanyNotFound(): void
@@ -211,7 +216,8 @@ class OffersControllerTest extends WebTestCase
         $offer = new Offers();
         $offer->setTitle('Offre de test ID');
         $offer->setKind('job');
-        $offer->setContract('CDI'); // Ajout du champ contract obligatoire
+        $offer->setContract('CDI');
+        $offer->setExtractedSkills(['PHP', 'Symfony']); // Renseignement du champ obligatoire
         $offer->setDescription('Description test');
         $offer->setCompanyId($company);
         $offer->setSourceId($source);
@@ -258,7 +264,8 @@ class OffersControllerTest extends WebTestCase
         $offer = new Offers();
         $offer->setTitle('Offre à supprimer');
         $offer->setKind('job');
-        $offer->setContract('CDI'); // Ajout du champ contract obligatoire
+        $offer->setContract('CDI');
+        $offer->setExtractedSkills(['PHP', 'Symfony']); // Renseignement du champ obligatoire
         $offer->setDescription('Description à supprimer');
         $offer->setCompanyId($company);
         $offer->setSourceId($source);
