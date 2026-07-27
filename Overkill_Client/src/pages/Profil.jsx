@@ -1,36 +1,188 @@
 import { useState, useEffect } from 'react'
-import Header from '../components/Header.jsx'
-import Footer from '../components/Footer.jsx'
+import { useNavigate } from 'react-router-dom'
+import Header from '../components/Header'
+import Footer from '../components/Footer'
 
 function Profil() {
-    const [ user, setUser ] = useState(null)
-    const [ activeTab, setActiveTab ] = useState('cv')
+    const navigate = useNavigate()
+    const [user, setUser] = useState(null)
+    const [activeTab, setActiveTab] = useState('cv')
+    const [cvList, setCvList] = useState([])
+    const [isUploading, setIsUploading] = useState(false)
+    const [skillsList, setSkillsList] = useState([])
+    const [newSkillName, setNewSkillName] = useState('')
 
-    useEffect( () => {
-        const savedUser = localStorage.getItem('user')
+    // 1. Récupération de l'utilisateur depuis le localStorage au chargement
+    useEffect(() => {
+        const savedUser = localStorage.getItem('user');
         if (savedUser) {
-            setUser(JSON.parse(savedUser))
+            setUser(JSON.parse(savedUser));
+        } else {
+            navigate('/');
         }
-    }, [])
+    }, [navigate]);
 
+    // 2. Récupération de la liste des CVs depuis le Backend
+    const fetchCvs = async () => {
+        try {
+            const token = localStorage.getItem('token');
+
+            const response = await fetch('http://localhost:8000/api/cvs', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Erreur HTTP: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            setCvList(data);
+
+        } catch (error) {
+            console.error("Erreur serveur lors de la récupération des CVs", error);
+        }
+    };
+
+    // Récupérer la liste des compétences depuis le Backend
+    const fetchSkills = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:8000/api/user/skills', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setSkillsList(data);
+            }
+        } catch (error) {
+            console.error("Erreur serveur lors de la récupération des skills", error);
+        }
+    };
+
+    // On recharge les skills quand l'onglet "skills" est actif
+    useEffect(() => {
+        if (activeTab === 'skills') {
+            fetchSkills();
+        }
+    }, [activeTab]);
+
+    // Ajouter une compétence
+    const handleAddSkill = async (e) => {
+        e.preventDefault();
+        if (!newSkillName.trim()) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:8000/api/user/skills', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ name: newSkillName })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setSkillsList((prev) => [...prev, data.skill]);
+                setNewSkillName('');
+            } else {
+                alert(data.error || "Erreur lors de l'ajout de la compétence.");
+            }
+        } catch (error) {
+            console.error("Erreur API :", error);
+            alert("Impossible d'ajouter la compétence.");
+        }
+    };
+
+    // Supprimer une compétence
+    const handleRemoveSkill = async (skillId) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`http://localhost:8000/api/user/skills/${skillId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                setSkillsList((prev) => prev.filter((skill) => skill.id !== skillId));
+            } else {
+                alert("Erreur lors de la suppression.");
+            }
+        } catch (error) {
+            console.error("Erreur API :", error);
+        }
+    };
+
+    // On recharge la liste des CVs quand l'onglet "cv" est actif
+    useEffect(() => {
+        if (activeTab === 'cv') {
+            fetchCvs()
+        }
+    }, [activeTab])
+
+    // 3. Gestion de la déconnexion
     const handleLogout = () => {
         localStorage.removeItem('user')
-        setUser(null);
+        setUser(null)
         window.location.href = '/'
     }
 
-    // Liste de CVs temporaire (à remplacer par l'appel API plus tard)
-    const [cvList, setCvList] = useState([
-        { id: 1, name: 'CV_Dev_Fullstack.pdf', date: '12/12/2026' },
-        { id: 2, name: 'CV_React_Tailwind.pdf', date: '05/10/2026' },
-        { id: 3, name: 'CV_General.pdf', date: '01/01/2026' },
-    ])
+    // 4. Fonction d'upload du fichier vers l'API
+    const handleFileUpload = async (event) => {
+        const file = event.target.files[0]
+        if (!file) return
+
+        setIsUploading(true)
+        const token = localStorage.getItem('token')
+
+        const formData = new FormData()
+        formData.append('file', file)
+
+        try {
+            const response = await fetch('http://localhost:8000/api/cvs/upload', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData,
+            })
+
+            const data = await response.json()
+
+            if (response.ok) {
+                alert(data.message || "CV téléversé avec succès !")
+                setCvList((prevList) => [data.cv, ...prevList])
+            } else {
+                alert(data.error || "Erreur lors de l'upload du CV.")
+            }
+        } catch (error) {
+            console.error("Erreur API :", error)
+            alert("Impossible d'envoyer le fichier au serveur.")
+        } finally {
+            setIsUploading(false)
+            event.target.value = ''
+        }
+    }
 
     return (
         <div className="min-h-screen flex flex-col bg-[#faf7f4] text-[#171717]">
             <Header user={user} onLogout={handleLogout} />
 
             <main className="flex-1 mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+                {/* En-tête Profil */}
                 <section className="text-center">
                     <h1 className="text-4xl font-black text-black">Mon Profil</h1>
 
@@ -43,13 +195,16 @@ function Profil() {
                     </div>
 
                     <h2 className="mt-4 text-2xl font-bold text-gray-900">
-                        {user ? `${user.firstname} ${user.lastname}` : 'Prénom Nom'}
+                        {user?.firstname && user?.lastname
+                            ? `${user.firstname} ${user.lastname}`
+                            : user?.email || 'Prénom Nom'}
                     </h2>
                     <p className="text-sm font-medium text-gray-500">
-                        {user?.email || 'mail@domain.com'}
+                        {user?.email || 'Mail@mail.com'}
                     </p>
                 </section>
 
+                {/* Barre d'onglets */}
                 <div className="mt-10 border-y border-[#d2915c]/40 py-2">
                     <nav className="flex justify-around text-center">
                         <button
@@ -87,56 +242,119 @@ function Profil() {
                     </nav>
                 </div>
 
+                {/* Contenu de l'onglet actif */}
                 <div className="mt-10">
                     {activeTab === 'cv' && (
                         <div className="grid gap-8 md:grid-cols-2 md:divide-x md:divide-gray-200">
+                            {/* Colonne Gauche : Zone de Dépôt */}
                             <div className="flex flex-col items-center justify-center p-6">
                                 <label className="group flex h-64 w-64 cursor-pointer flex-col items-center justify-center rounded-3xl bg-[#d2915c] p-6 text-center text-white shadow-lg transition hover:scale-105 hover:bg-[#b87a48]">
                                     <svg className="h-16 w-16 transition group-hover:translate-y-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                     </svg>
-                                    <span className="mt-4 text-xl font-bold">Déposer Mon CV</span>
-                                    <input type="file" className="hidden" accept=".pdf,.doc,.docx" />
+                                    <span className="mt-4 text-xl font-bold">
+                    {isUploading ? 'Envoi en cours...' : 'Déposer Mon CV'}
+                  </span>
+                                    <input
+                                        type="file"
+                                        className="hidden"
+                                        accept=".pdf,.doc,.docx"
+                                        onChange={handleFileUpload}
+                                        disabled={isUploading}
+                                    />
                                 </label>
                             </div>
 
+                            {/* Colonne Droite : Liste des CVs */}
                             <div className="flex flex-col items-center p-6 md:pl-10">
                                 <h3 className="text-lg font-bold text-gray-800">Derniers CV</h3>
 
                                 <div className="mt-6 flex w-full max-w-sm flex-col gap-4">
-                                    {cvList.map((cv) => (
-                                        <div
-                                            key={cv.id}
-                                            className="flex items-center gap-4 rounded-xl border border-red-200 bg-white p-4 shadow-sm ring-1 ring-black/5"
-                                        >
-                                            <div className="overflow-hidden">
-                                                <p className="truncate text-sm font-bold text-gray-800">{cv.name}</p>
-                                                <p className="text-xs text-gray-400">{cv.date}</p>
-                                            </div>
-                                        </div>
-                                    ))}
+                                    {cvList.length === 0 ? (
+                                        <p className="text-center text-sm text-gray-500">
+                                            Aucun CV déposé pour le moment.
+                                        </p>
+                                    ) : (
+                                        cvList.map((cv) => (
+                                            <a
+                                                key={cv.id}
+                                                href={`http://localhost:8000${cv.filePath}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-4 rounded-xl border border-red-200 bg-white p-4 shadow-sm ring-1 ring-black/5 transition hover:bg-gray-50"
+                                            >
+                                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100 text-sm font-bold text-purple-600">
+                                                    A
+                                                </div>
+                                                <div className="overflow-hidden">
+                                                    <p className="truncate text-sm font-bold text-gray-800">
+                                                        {cv.originalName}
+                                                    </p>
+                                                    <p className="text-xs text-gray-400">{cv.uploadedAt}</p>
+                                                </div>
+                                            </a>
+                                        ))
+                                    )}
                                 </div>
                             </div>
                         </div>
                     )}
 
                     {activeTab === 'skills' && (
-                        <div className="py-12 text-center text-gray-500">
-                            // TODO
-                            Section Mes Skills (À venir)
+                        <div className="mx-auto max-w-xl p-6">
+                            <h3 className="text-xl font-bold text-gray-800 mb-6 text-center">Gérer mes compétences</h3>
+
+                            {/* Formulaire d'ajout */}
+                            <form onSubmit={handleAddSkill} className="flex gap-2 mb-8">
+                                <input
+                                    type="text"
+                                    value={newSkillName}
+                                    onChange={(e) => setNewSkillName(e.target.value)}
+                                    placeholder="Ex: Symfony, React, Docker..."
+                                    className="flex-1 rounded-xl border border-gray-300 px-4 py-2 text-sm focus:border-[#d2915c] focus:outline-none focus:ring-1 focus:ring-[#d2915c]"
+                                />
+                                <button
+                                    type="submit"
+                                    className="rounded-xl bg-[#d2915c] px-6 py-2 text-sm font-bold text-white shadow transition hover:bg-[#b87a48]"
+                                >
+                                    Ajouter
+                                </button>
+                            </form>
+
+                            {/* Liste des badges/compétences */}
+                            <div className="flex flex-wrap gap-2 justify-center">
+                                {skillsList.length === 0 ? (
+                                    <p className="text-center text-sm text-gray-500">
+                                        Aucune compétence ajoutée pour le moment.
+                                    </p>
+                                ) : (
+                                    skillsList.map((skill) => (
+                                        <span
+                                            key={skill.id}
+                                            className="inline-flex items-center gap-2 rounded-full bg-purple-50 px-4 py-2 text-sm font-semibold text-purple-700 border border-purple-200 shadow-sm"
+                                        >{skill.name}
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveSkill(skill.id)}
+                                                className="text-purple-400 hover:text-red-500 font-bold ml-1"
+                                                title="Supprimer"
+                                            >&times;
+                                            </button>
+                                        </span>
+                                    ))
+                                )}
+                            </div>
                         </div>
                     )}
 
                     {activeTab === 'candidatures' && (
                         <div className="py-12 text-center text-gray-500">
-                            // TODO
                             Section Mes Candidatures (À venir)
                         </div>
                     )}
 
                     {activeTab === 'settings' && (
                         <div className="py-12 text-center text-gray-500">
-                            // TODO
                             Section Paramètres (À venir)
                         </div>
                     )}

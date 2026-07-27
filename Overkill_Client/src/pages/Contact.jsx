@@ -1,13 +1,9 @@
 import { useState } from 'react'
-import Header from '../components/Header'
+import PublicHeader from '../components/PublicHeader'
 import Footer from '../components/Footer'
 import Background from '../assets/images/Overkill_Background.png'
 
 function Contact() {
-  const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('user')
-    return savedUser ? JSON.parse(savedUser) : null
-  })
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' })
   const [isSent, setIsSent] = useState(false)
 
@@ -23,14 +19,9 @@ function Contact() {
     setIsSent(true)
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem('user')
-    setUser(null)
-  }
-
   return (
     <div className="flex min-h-screen flex-col bg-[#faf7f4] text-[#171717]">
-      <Header user={user} onLogout={handleLogout} />
+      <PublicHeader />
 
       <main className="flex-1">
         <section

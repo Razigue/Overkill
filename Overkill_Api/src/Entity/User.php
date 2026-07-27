@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
@@ -42,8 +44,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $cv_text = null;
 
-    #[ORM\Column(nullable: true)]
-    private ?array $skills = null;
+    #[ORM\ManyToMany(targetEntity: Skill::class, inversedBy: 'users')]
+    private Collection $skills;
 
     #[ORM\Column]
     private ?\DateTimeImmutable $created_at = null;
@@ -51,10 +53,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?\DateTimeImmutable $updated_at = null;
 
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: Cv::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['uploadedAt' => 'DESC'])]
+    #[Ignore]
+    private Collection $cvs;
+
     public function __construct()
     {
         $this->created_at = new \DateTimeImmutable();
         $this->updated_at = new \DateTimeImmutable();
+        $this->cvs = new ArrayCollection();
+        $this->skills = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -122,6 +131,35 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
+     * @return Collection<int, Cv>
+     */
+    public function getCvs(): Collection
+    {
+        return $this->cvs;
+    }
+
+    public function addCv(Cv $cv): static
+    {
+        if (!$this->cvs->contains($cv)) {
+            $this->cvs->add($cv);
+            $cv->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCv(Cv $cv): static
+    {
+        if ($this->cvs->removeElement($cv)) {
+            if ($cv->getUser() === $this) {
+                $cv->setUser(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
      * Ensure the session doesn't contain actual password hashes by CRC32C-hashing them, as supported since Symfony 7.3.
      */
     public function __serialize(): array
@@ -156,14 +194,26 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getSkills(): ?array
+    /**
+     * @return Collection<int, Skill>
+     */
+    public function getSkills(): Collection
     {
         return $this->skills;
     }
 
-    public function setSkills(?array $skills): static
+    public function addSkill(Skill $skill): static
     {
-        $this->skills = $skills;
+        if (!$this->skills->contains($skill)) {
+            $this->skills->add($skill);
+        }
+
+        return $this;
+    }
+
+    public function removeSkill(Skill $skill): static
+    {
+        $this->skills->removeElement($skill);
 
         return $this;
     }
