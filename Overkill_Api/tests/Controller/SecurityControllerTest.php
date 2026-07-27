@@ -8,13 +8,15 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class SecurityControllerTest extends WebTestCase
 {
-    // Test d'une connexion réussie via une API (JSON)
+    // ==========================================
+    // 1. TESTS AUTHENTIFICATION (LOGIN)
+    // ==========================================
+
     public function testLoginSuccess(): void
     {
         $client = static::createClient();
         $container = static::getContainer();
 
-        // 1. Créer et insérer l'utilisateur de test dans la base SQLite vide
         $entityManager = $container->get('doctrine')->getManager();
         $passwordHasher = $container->get(UserPasswordHasherInterface::class);
 
@@ -23,14 +25,12 @@ class SecurityControllerTest extends WebTestCase
         $user->setFirstName('Test'); 
         $user->setLastName('User');
         
-        // On hache le mot de passe pour que Symfony puisse le valider
         $hashedPassword = $passwordHasher->hashPassword($user, 'password123');
         $user->setPassword($hashedPassword);
 
         $entityManager->persist($user);
         $entityManager->flush();
 
-        // On simule la requête POST de login
         $client->request(
             'POST',
             '/api/login',
@@ -43,18 +43,13 @@ class SecurityControllerTest extends WebTestCase
             ])
         );
 
-        // On s'attend à un statut HTTP 200
         $this->assertResponseIsSuccessful();
         
-        // Validation de la structure de réponse réelle de l'API
         $responseData = json_decode($client->getResponse()->getContent(), true);
-        
-        // On vérifie que la clé 'user' existe et contient le bon email
         $this->assertArrayHasKey('user', $responseData);
         $this->assertSame('user@epitech.eu', $responseData['user']['email']);
     }
 
-    // Test d'un échec de connexion
     public function testLoginInvalidCredentials(): void
     {
         $client = static::createClient();
@@ -71,7 +66,124 @@ class SecurityControllerTest extends WebTestCase
             ])
         );
 
-        // On s'attend à une erreur d'authentification
         $this->assertResponseStatusCodeSame(401);
+    }
+
+    // ==========================================
+    // 2. TESTS INSCRIPTION (REGISTER)
+    // ==========================================
+
+    public function testRegisterSuccess(): void
+    {
+        $client = static::createClient();
+
+        $client->request(
+            'POST',
+            '/api/register',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode([
+                'email' => 'newstudent@epitech.eu',
+                'password' => 'securepass123',
+                'firstName' => 'Jane',
+                'lastName' => 'Doe'
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(201);
+
+        $responseData = json_decode($client->getResponse()->getContent(), true);
+        $this->assertArrayHasKey('user', $responseData);
+        $this->assertSame('newstudent@epitech.eu', $responseData['user']['email']);
+    }
+
+    public function testRegisterDuplicateEmail(): void
+    {
+        $client = static::createClient();
+        $container = static::getContainer();
+
+        // Insérer au préalable un utilisateur
+        $entityManager = $container->get('doctrine')->getManager();
+        $user = new User();
+        $user->setEmail('existing@epitech.eu');
+        $user->setFirstName('John');
+        $user->setLastName('Doe');
+        $user->setPassword('password123');
+
+        $entityManager->persist($user);
+        $entityManager->flush();
+
+        // Tenter de s'inscrire avec le même email
+        $client->request(
+            'POST',
+            '/api/register',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode([
+                'email' => 'existing@epitech.eu',
+                'password' => 'anotherpassword',
+                'firstName' => 'John',
+                'lastName' => 'Doe'
+            ])
+        );
+
+        $this->assertResponseStatusCodeSame(409);
+    }
+
+    // ==========================================
+    // 3. TESTS PROFIL (ME)
+    // ==========================================
+
+    public function testMeUnauthorized(): void
+    {
+        $client = static::createClient();
+
+        $client->request('GET', '/api/me');
+
+        $this->assertResponseStatusCodeSame(401);
+    }
+
+    public function testMeAuthenticated(): void
+    {
+        $client = static::createClient();
+        $container = static::getContainer();
+
+        $entityManager = $container->get('doctrine')->getManager();
+        $passwordHasher = $container->get(UserPasswordHasherInterface::class);
+
+        $user = new User();
+        $user->setEmail('authenticated@epitech.eu');
+        $user->setFirstName('Alice');
+        $user->setLastName('Bob');
+        $user->setPassword($passwordHasher->hashPassword($user, 'password123'));
+
+        $entityManager->persist($user);
+        $entityManager->flush();
+
+        // Simuler la connexion de l'utilisateur
+        $client->loginUser($user);
+
+        $client->request('GET', '/api/me');
+
+        $this->assertResponseIsSuccessful();
+        $responseData = json_decode($client->getResponse()->getContent(), true);
+        $this->assertSame('authenticated@epitech.eu', $responseData['email']);
+    }
+
+    // ==========================================
+    // 4. TEST HEALTHCHECK DATABASE
+    // ==========================================
+
+    public function testCheckDatabase(): void
+    {
+        $client = static::createClient();
+
+        $client->request('POST', '/api/check/database');
+
+        $this->assertResponseIsSuccessful();
+        $responseData = json_decode($client->getResponse()->getContent(), true);
+        $this->assertArrayHasKey('status', $responseData);
     }
 }
