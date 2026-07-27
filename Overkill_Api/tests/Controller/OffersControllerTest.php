@@ -47,22 +47,27 @@ class UserFavoriteControllerTest extends WebTestCase
         $offer->setTitle('Développeur Symfony Test');
         $offer->setDescription('Description de test');
 
+        // Fix de la propriété extracted_skills (support de camelCase et snake_case)
+        $skillsArray = ['PHP', 'Symfony'];
+        $skillsJson = json_encode($skillsArray);
+
+        if (method_exists($offer, 'setExtractedSkills')) {
+            try {
+                $offer->setExtractedSkills($skillsArray);
+            } catch (\TypeError $e) {
+                $offer->setExtractedSkills($skillsJson);
+            }
+        } elseif (property_exists($offer, 'extractedSkills')) {
+            $offer->extractedSkills = $skillsArray;
+        } elseif (property_exists($offer, 'extracted_skills')) {
+            $offer->extracted_skills = $skillsArray;
+        }
+
         // Champ 'contract'
         if (method_exists($offer, 'setContract')) {
             $offer->setContract('CDI');
         } elseif (property_exists($offer, 'contract')) {
             $offer->contract = 'CDI';
-        }
-
-        // FIX: Champ 'extracted_skills'
-        if (method_exists($offer, 'setExtractedSkills')) {
-            try {
-                $offer->setExtractedSkills(['PHP', 'Symfony']);
-            } catch (\TypeError $e) {
-                $offer->setExtractedSkills('PHP, Symfony');
-            }
-        } elseif (property_exists($offer, 'extracted_skills')) {
-            $offer->extracted_skills = ['PHP', 'Symfony'];
         }
 
         // Champ 'kind'
@@ -72,7 +77,7 @@ class UserFavoriteControllerTest extends WebTestCase
             $offer->kind = 'CDI';
         }
 
-        // Champs optionnels/obligatoires courants (Sécurité supplémentaire)
+        // Champs optionnels/obligatoires courants
         if (method_exists($offer, 'setCompany')) {
             $offer->setCompany('Test Company');
         }
@@ -91,8 +96,8 @@ class UserFavoriteControllerTest extends WebTestCase
             } catch (\TypeError $e) {
                 $offer->setPublishedAt(new \DateTime());
             }
-        } elseif (property_exists($offer, 'published_at')) {
-            $offer->published_at = $nowImmutable;
+        } elseif (property_exists($offer, 'publishedAt')) {
+            $offer->publishedAt = $nowImmutable;
         }
 
         // Champ 'starts_at'
@@ -102,15 +107,15 @@ class UserFavoriteControllerTest extends WebTestCase
             } catch (\TypeError $e) {
                 $offer->setStartsAt(new \DateTime());
             }
-        } elseif (property_exists($offer, 'starts_at')) {
-            $offer->starts_at = $nowImmutable;
+        } elseif (property_exists($offer, 'startsAt')) {
+            $offer->startsAt = $nowImmutable;
         }
 
         // Champ 'is_duplicate'
         if (method_exists($offer, 'setIsDuplicate')) {
             $offer->setIsDuplicate(false);
-        } elseif (property_exists($offer, 'is_duplicate')) {
-            $offer->is_duplicate = false;
+        } elseif (property_exists($offer, 'isDuplicate')) {
+            $offer->isDuplicate = false;
         }
 
         $this->entityManager->persist($offer);
