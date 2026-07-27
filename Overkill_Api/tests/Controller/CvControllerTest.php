@@ -37,7 +37,7 @@ class CvControllerTest extends WebTestCase
         $entityManager->persist($user);
         $entityManager->flush();
 
-        // Récupération du token via le login
+        // Récupération du token via la route de login
         $this->client->request(
             'POST',
             '/api/login',
@@ -57,9 +57,9 @@ class CvControllerTest extends WebTestCase
     }
 
     /**
-     * Helper pour créer un fichier temporaire simulé.
+     * Helper pour créer un fichier temporaire simulé avec un header PDF valide.
      */
-    private function createDummyFile(string $originalName, string $content = 'Dummy PDF content'): UploadedFile
+    private function createDummyFile(string $originalName, string $content = "%PDF-1.4 Header Mock Data"): UploadedFile
     {
         $tempFilePath = sys_get_temp_dir() . '/' . uniqid() . '_' . $originalName;
         file_put_contents($tempFilePath, $content);
@@ -69,7 +69,7 @@ class CvControllerTest extends WebTestCase
             $originalName,
             'application/pdf',
             null,
-            true // mode test (empêche l'erreur is_uploaded_file)
+            true // Mode test (désactive la vérification is_uploaded_file)
         );
     }
 
@@ -99,7 +99,6 @@ class CvControllerTest extends WebTestCase
     {
         [$user, $token] = $this->createAuthenticatedUser('list_owner@epitech.eu');
 
-        // Ajout d'un CV en BDD pour cet utilisateur
         $container = static::getContainer();
         $entityManager = $container->get('doctrine')->getManager();
 
@@ -111,7 +110,6 @@ class CvControllerTest extends WebTestCase
         $entityManager->persist($cv);
         $entityManager->flush();
 
-        // Requête authentifiée
         $this->client->request(
             'GET',
             '/api/cvs',
@@ -144,7 +142,7 @@ class CvControllerTest extends WebTestCase
             'POST',
             '/api/cvs/upload',
             [],
-            ['file' => $uploadedFile], // Envoi du fichier multipart
+            ['file' => $uploadedFile],
             ['HTTP_AUTHORIZATION' => 'Bearer ' . $token]
         );
 
@@ -156,7 +154,9 @@ class CvControllerTest extends WebTestCase
         $this->assertSame('CV envoyé avec succès !', $responseData['message']);
         $this->assertArrayHasKey('cv', $responseData);
         $this->assertSame('mon_cv_test.pdf', $responseData['cv']['originalName']);
-        $this->assertStringStartsWith('/uploads/cvs/mon_cv_test-', $responseData['cv']['filePath']);
+
+        // Le Slugger transforme les underscores '_' en tirets '-' ("mon_cv_test" -> "mon-cv-test")
+        $this->assertStringStartsWith('/uploads/cvs/mon-cv-test-', $responseData['cv']['filePath']);
     }
 
     public function testUploadCvNoFile(): void
@@ -167,7 +167,7 @@ class CvControllerTest extends WebTestCase
             'POST',
             '/api/cvs/upload',
             [],
-            [], // Aucun fichier fourni
+            [],
             ['HTTP_AUTHORIZATION' => 'Bearer ' . $token]
         );
 
@@ -181,7 +181,6 @@ class CvControllerTest extends WebTestCase
     {
         [$user, $token] = $this->createAuthenticatedUser('invalid_ext@epitech.eu');
 
-        // Création d'un fichier avec une extension interdite (.exe)
         $invalidFile = $this->createDummyFile('script.exe', 'echo "test"');
 
         $this->client->request(
