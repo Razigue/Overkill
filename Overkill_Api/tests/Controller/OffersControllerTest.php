@@ -26,6 +26,14 @@ class OffersControllerTest extends WebTestCase
         $user = new User();
         $user->setEmail('test_offers_' . uniqid() . '@example.com');
         $user->setPassword('password123');
+
+        // Correction : Renseignement des champs obligatoires (NOT NULL constraint failed: users.first_name / last_name)
+        if (method_exists($user, 'setFirstName')) {
+            $user->setFirstName('Test');
+        }
+        if (method_exists($user, 'setLastName')) {
+            $user->setLastName('User');
+        }
         if (method_exists($user, 'setRoles')) {
             $user->setRoles(['ROLE_USER']);
         }
@@ -55,7 +63,6 @@ class OffersControllerTest extends WebTestCase
         if (method_exists($source, 'setName')) {
             $source->setName('Internal Portal');
         }
-        // Correction : Définition des champs obligatoires (NOT NULL constraint failed: sources.base_url)
         if (method_exists($source, 'setBaseUrl')) {
             $source->setBaseUrl('https://example.com');
         }
