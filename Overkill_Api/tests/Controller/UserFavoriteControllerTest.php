@@ -2,9 +2,9 @@
 
 namespace App\Tests\Controller;
 
-use App\Entity\Offer;
+use App\Entity\Offers;
 use App\Entity\User;
-use App\Entity\UserFavorite;
+use App\Entity\UserFavorites;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -14,31 +14,31 @@ class UserFavoriteControllerTest extends WebTestCase
     private KernelBrowser $client;
     private EntityManagerInterface $entityManager;
     private User $user;
-    private Offer $offer;
+    private Offers $offer;
 
     protected function setUp(): void
     {
         $this->client = static::createClient();
         $this->entityManager = static::getContainer()->get(EntityManagerInterface::class);
 
-        // Clean up database entities for tests
-        $this->entityManager->createQuery('DELETE FROM App\Entity\UserFavorite')->execute();
-        $this->entityManager->createQuery('DELETE FROM App\Entity\Offer')->execute();
+        // Nettoyage de la base de données
+        $this->entityManager->createQuery('DELETE FROM App\Entity\UserFavorites')->execute();
+        $this->entityManager->createQuery('DELETE FROM App\Entity\Offers')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\User')->execute();
 
-        // Create test User
+        // Création de l'utilisateur de test
         $this->user = new User();
         $this->user->setEmail('test_favorite_' . uniqid() . '@example.com');
         $this->user->setPassword('password123');
         $this->user->setRoles(['ROLE_USER']);
         $this->entityManager->persist($this->user);
 
-        // Create test Offer
-        $this->offer = new Offer();
+        // Création de l'offre de test
+        $this->offer = new Offers();
         $this->offer->setTitle('Test Job Offer');
         $this->offer->setDescription('Test Description');
         $this->offer->setCompany('Test Company');
-        $this->offer->setKind('job'); // Fix: Ajout du champ obligatoire 'kind'
+        $this->offer->setKind('job'); // Fix: Champ obligatoire
         
         $this->entityManager->persist($this->offer);
         $this->entityManager->flush();
@@ -48,7 +48,7 @@ class UserFavoriteControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->user);
 
-        $favorite = new UserFavorite();
+        $favorite = new UserFavorites();
         $favorite->setUser($this->user);
         $favorite->setOffer($this->offer);
         $this->entityManager->persist($favorite);
@@ -83,7 +83,7 @@ class UserFavoriteControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->user);
 
-        $favorite = new UserFavorite();
+        $favorite = new UserFavorites();
         $favorite->setUser($this->user);
         $favorite->setOffer($this->offer);
         $this->entityManager->persist($favorite);
@@ -105,7 +105,7 @@ class UserFavoriteControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->user);
 
-        $favorite = new UserFavorite();
+        $favorite = new UserFavorites();
         $favorite->setUser($this->user);
         $favorite->setOffer($this->offer);
         $this->entityManager->persist($favorite);
