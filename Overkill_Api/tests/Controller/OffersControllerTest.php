@@ -7,6 +7,7 @@ use App\Entity\Companies;
 use App\Entity\Offers;
 use App\Entity\Sources;
 use App\Entity\User;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -20,7 +21,7 @@ class OffersControllerTest extends WebTestCase
         parent::setUp();
         $this->client = static::createClient();
 
-        // 1. Création et authentification d'un utilisateur de test pour passer la sécurité JWT
+        // 1. Création et authentification d'un utilisateur de test
         $container = static::getContainer();
         $em = $container->get('doctrine')->getManager();
 
@@ -41,18 +42,19 @@ class OffersControllerTest extends WebTestCase
         $em->persist($this->testUser);
         $em->flush();
 
-        // Connecte l'utilisateur pour les requêtes HTTP simulées
-        $this->client->loginUser($this->testUser);
-    }
-
-    /**
-     * Helper pour ré-authentifier si nécessaire lors de requêtes successives
-     */
-    private function authenticateClient(): void
-    {
-        if ($this->client && $this->testUser) {
-            $this->client->loginUser($this->testUser);
+        // 2. Génération du token JWT et configuration de l'en-tête Authorization global
+        $token = null;
+        if ($container->has(JWTTokenManagerInterface::class)) {
+            $token = $container->get(JWTTokenManagerInterface::class)->create($this->testUser);
+        } elseif ($container->has('lexik_jwt_authentication.jwt_manager')) {
+            $token = $container->get('lexik_jwt_authentication.jwt_manager')->create($this->testUser);
         }
+
+        if ($token) {
+            $this->client->setServerParameter('HTTP_AUTHORIZATION', sprintf('Bearer %s', $token));
+        }
+
+        $this->client->loginUser($this->testUser);
     }
 
     /**
@@ -298,9 +300,6 @@ class OffersControllerTest extends WebTestCase
         // 1ère requête : Suppression de l'offre
         $this->client->request('DELETE', '/api/offers/' . $offerId);
         $this->assertResponseStatusCodeSame(204);
-
-        // Ré-authentification du client avant la 2nde requête HTTP
-        $this->authenticateClient();
 
         // 2ème requête : Vérification que l'offre est bien supprimée (404)
         $this->client->request('GET', '/api/offers/' . $offerId);
