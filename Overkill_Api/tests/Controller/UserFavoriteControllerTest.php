@@ -27,7 +27,7 @@ class UserFavoriteControllerTest extends WebTestCase
 
     private function createTestData(): void
     {
-        // 1. Création de l'utilisateur de test avec ses champs obligatoires
+        // 1. Création de l'utilisateur de test
         $user = new User();
         $user->setEmail('test_favorite_' . uniqid() . '@example.com');
         $user->setPassword(password_hash('password123', PASSWORD_BCRYPT));
@@ -42,7 +42,7 @@ class UserFavoriteControllerTest extends WebTestCase
 
         $this->entityManager->persist($user);
 
-        // 2. Création de l'offre de test avec tous ses champs obligatoires
+        // 2. Création de l'offre de test avec tous les champs requis
         $offer = new Offers();
         $offer->setTitle('Développeur Symfony Test');
         $offer->setDescription('Description de test');
@@ -52,6 +52,13 @@ class UserFavoriteControllerTest extends WebTestCase
             $offer->setKind('CDI');
         } elseif (property_exists($offer, 'kind')) {
             $offer->kind = 'CDI';
+        }
+
+        // FIX : Ajout du champ obligatoire 'contract'
+        if (method_exists($offer, 'setContract')) {
+            $offer->setContract('CDI');
+        } elseif (property_exists($offer, 'contract')) {
+            $offer->contract = 'CDI';
         }
 
         // Champ 'published_at'
@@ -66,7 +73,7 @@ class UserFavoriteControllerTest extends WebTestCase
             $offer->published_at = $nowImmutable;
         }
 
-        // FIX : Ajout du champ obligatoire 'starts_at'
+        // Champ 'starts_at'
         if (method_exists($offer, 'setStartsAt')) {
             try {
                 $offer->setStartsAt($nowImmutable);
