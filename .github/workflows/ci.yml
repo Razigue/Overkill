@@ -165,3 +165,71 @@ jobs:
       - name: Run CvController Tests
         working-directory: ./Overkill_Api
         run: vendor/bin/phpunit tests/Controller/CvControllerTest.php
+
+  test-backend-OffersController:
+    needs: test-backend-SecurityController
+    if: ${{ !cancelled() }} # S'exécute même si SecurityController échoue
+    runs-on: self-hosted 
+    env:
+      APP_ENV: test
+      APP_SECRET: "ceci_est_un_secret_de_test_12345"
+      DATABASE_URL: "sqlite:///%kernel.project_dir%/var/data.db"
+      DEFAULT_URI: "http://localhost"
+      MESSENGER_TRANSPORT_DSN: "in-memory://"
+      MAILER_DSN: "null://null"
+      JWT_SECRET_KEY: "%kernel.project_dir%/config/jwt/private.pem"
+      JWT_PUBLIC_KEY: "%kernel.project_dir%/config/jwt/public.pem"
+      JWT_PASSPHRASE: "jwt_test_passphrase"
+    steps:
+      - uses: actions/checkout@v4
+
+      # Configurer PHP sur ton runner local
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql
+          coverage: none
+
+      # Installation sans exécuter les scripts automatiques
+      - name: Install Dependencies
+        working-directory: ./Overkill_Api
+        run: composer install --no-progress --prefer-dist --no-scripts
+
+      # Génération des clés JWT pour la suite des tests
+      - name: Generate SSL Keys for JWT
+        working-directory: ./Overkill_Api
+        run: |
+          mkdir -p config/jwt
+          openssl genpkey -out config/jwt/private.pem -aes256 -algorithm rsa -pkeyopt rsa_keygen_bits:4096 -pass pass:jwt_test_passphrase
+          openssl pkey -in config/jwt/private.pem -passin pass:jwt_test_passphrase -pubout -out config/jwt/public.pem
+
+      # S'assurer que .env existe
+      - name: Ensure .env file exists with defaults
+        working-directory: ./Overkill_Api
+        run: |
+          if [ -f .env.test ]; then
+            cp .env.test .env
+          else
+            echo "APP_ENV=test" > .env
+            echo "APP_SECRET=ceci_est_un_secret_de_test_12345" >> .env
+            echo "DATABASE_URL=sqlite:///%kernel.project_dir%/var/data.db" >> .env
+            echo "DEFAULT_URI=http://localhost" >> .env
+            echo "MESSENGER_TRANSPORT_DSN=in-memory://" >> .env
+            echo "MAILER_DSN=null://null" >> .env
+            echo "JWT_SECRET_KEY=%kernel.project_dir%/config/jwt/private.pem" >> .env
+            echo "JWT_PUBLIC_KEY=%kernel.project_dir%/config/jwt/public.pem" >> .env
+            echo "JWT_PASSPHRASE=jwt_test_passphrase" >> .env
+          fi
+
+      # Réinitialiser la base de données
+      - name: Prepare Database for Tests
+        working-directory: ./Overkill_Api
+        run: |
+          php bin/console doctrine:schema:update --force --env=test
+          php bin/console doctrine:fixtures:load --no-interaction --env=test || true
+
+      # Exécuter PHPUnit spécifiquement pour OffersControllerTest
+      - name: Run OffersController Tests
+        working-directory: ./Overkill_Api
+        run: vendor/bin/phpunit tests/Controller/OffersControllerTest.php
