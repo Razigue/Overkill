@@ -22,26 +22,33 @@ class UserFavoriteControllerTest extends WebTestCase
         $this->client = static::createClient();
         $this->entityManager = static::getContainer()->get(EntityManagerInterface::class);
 
-        // Nettoyage ou initialisation des données de test
         $this->createTestData();
     }
 
     private function createTestData(): void
     {
-        // 1. Création d'un utilisateur de test
+        // 1. Création de l'utilisateur de test avec TOUS ses champs obligatoires
         $user = new User();
         $user->setEmail('test_favorite_' . uniqid() . '@example.com');
         $user->setPassword(password_hash('password123', PASSWORD_BCRYPT));
         $user->setRoles(['ROLE_USER']);
-        
+
+        // Correction pour la contrainte NOT NULL sur users.first_name / users.last_name
+        if (method_exists($user, 'setFirstName')) {
+            $user->setFirstName('John');
+        }
+        if (method_exists($user, 'setLastName')) {
+            $user->setLastName('Doe');
+        }
+
         $this->entityManager->persist($user);
 
-        // 2. Création d'une offre de test
+        // 2. Création de l'offre de test
         $offer = new Offers();
         $offer->setTitle('Développeur Symfony Test');
         $offer->setDescription('Description de test');
         
-        // FIX : Définition explicite de is_duplicate pour éviter l'erreur NOT NULL
+        // Correction pour la contrainte NOT NULL sur offers.is_duplicate
         if (method_exists($offer, 'setIsDuplicate')) {
             $offer->setIsDuplicate(false);
         } elseif (property_exists($offer, 'is_duplicate')) {
@@ -54,7 +61,7 @@ class UserFavoriteControllerTest extends WebTestCase
         $this->testUser = $user;
         $this->testOffer = $offer;
 
-        // 3. Récupération d'un token JWT (adapte selon ton système d'authentification)
+        // 3. Récupération du token JWT
         $this->client->request(
             'POST',
             '/api/login_check',
@@ -109,17 +116,14 @@ class UserFavoriteControllerTest extends WebTestCase
 
     public function testPostUserFavoriteAlreadyExists(): void
     {
-        // Création préalable du favori
         $favorite = new UserFavorites();
         
-        // Association de l'utilisateur
         if (method_exists($favorite, 'setUser')) {
             $favorite->setUser($this->testUser);
         } elseif (method_exists($favorite, 'setUserId')) {
             $favorite->setUserId($this->testUser);
         }
 
-        // Association de l'offre
         if (method_exists($favorite, 'setOffer')) {
             $favorite->setOffer($this->testOffer);
         } elseif (method_exists($favorite, 'setOfferId')) {
@@ -129,7 +133,6 @@ class UserFavoriteControllerTest extends WebTestCase
         $this->entityManager->persist($favorite);
         $this->entityManager->flush();
 
-        // Tentative de ré-ajout
         $this->client->request(
             'POST',
             '/api/favorites',
@@ -139,13 +142,11 @@ class UserFavoriteControllerTest extends WebTestCase
             json_encode(['offer_id' => $this->testOffer->getId()])
         );
 
-        // Doit renvoyer un conflit (409) ou une erreur (400) selon ton contrôleur
         $this->assertLessThan(500, $this->client->getResponse()->getStatusCode());
     }
 
     public function testDeleteUserFavoriteSuccess(): void
     {
-        // Création du favori à supprimer
         $favorite = new UserFavorites();
         
         if (method_exists($favorite, 'setUser')) {
