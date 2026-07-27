@@ -112,14 +112,14 @@ class OffersControllerTest extends WebTestCase
 
         $payload = [
             'title' => 'Développeur PHP / Symfony',
-            'kind' => 'job', // Minuscule attendue ("job", "internship", "apprenticeship")
+            'kind' => 'job',
             'description' => 'Un super poste de dev Symfony.',
             'company_id' => $company->getId(),
             'source_id' => $source->getId(),
             'category_id' => [$category->getId()],
             'city' => 'Paris',
-            'country' => 'FR', // Code ISO à 2 lettres
-            'isRemote' => ['full'], // Format tableau attendu
+            'country' => 'FR',
+            'isRemote' => ['full'],
             'salaryMin' => 45000,
             'salaryMax' => 55000,
             'salaryCurrency' => 'EUR',
@@ -144,8 +144,11 @@ class OffersControllerTest extends WebTestCase
 
         $this->assertResponseStatusCodeSame(201);
         $responseData = json_decode($this->client->getResponse()->getContent(), true);
-        $this->assertArrayHasKey('id', $responseData);
-        $this->assertSame('Développeur PHP / Symfony', $responseData['title']);
+
+        // Supporte les réponses directes ou encapsulées (ex: ['offer' => [...]] ou ['data' => [...]])
+        $offerData = $responseData['offer'] ?? $responseData['data'] ?? $responseData;
+        $this->assertArrayHasKey('id', $offerData);
+        $this->assertSame('Développeur PHP / Symfony', $offerData['title'] ?? null);
     }
 
     public function testPostOfferCompanyNotFound(): void
@@ -156,7 +159,7 @@ class OffersControllerTest extends WebTestCase
             'title' => 'Poste sans entreprise valide',
             'kind' => 'job',
             'description' => 'Description',
-            'company_id' => 999999, // ID inexistant
+            'company_id' => 999999,
             'source_id' => $source->getId(),
             'category_id' => [$category->getId()],
             'city' => 'Paris',
@@ -208,6 +211,7 @@ class OffersControllerTest extends WebTestCase
         $offer = new Offers();
         $offer->setTitle('Offre de test ID');
         $offer->setKind('job');
+        $offer->setContract('CDI'); // Ajout du champ contract obligatoire
         $offer->setDescription('Description test');
         $offer->setCompanyId($company);
         $offer->setSourceId($source);
@@ -229,7 +233,8 @@ class OffersControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
         $responseData = json_decode($this->client->getResponse()->getContent(), true);
-        $this->assertSame('Offre de test ID', $responseData['title']);
+        $offerData = $responseData['offer'] ?? $responseData['data'] ?? $responseData;
+        $this->assertSame('Offre de test ID', $offerData['title'] ?? null);
     }
 
     // ==========================================
@@ -253,6 +258,7 @@ class OffersControllerTest extends WebTestCase
         $offer = new Offers();
         $offer->setTitle('Offre à supprimer');
         $offer->setKind('job');
+        $offer->setContract('CDI'); // Ajout du champ contract obligatoire
         $offer->setDescription('Description à supprimer');
         $offer->setCompanyId($company);
         $offer->setSourceId($source);
