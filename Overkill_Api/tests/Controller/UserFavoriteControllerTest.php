@@ -54,7 +54,7 @@ class UserFavoriteControllerTest extends WebTestCase
             $offer->kind = 'CDI';
         }
 
-        // FIX : Ajout du champ obligatoire 'published_at'
+        // Champ 'published_at'
         $nowImmutable = new \DateTimeImmutable();
         if (method_exists($offer, 'setPublishedAt')) {
             try {
@@ -64,6 +64,17 @@ class UserFavoriteControllerTest extends WebTestCase
             }
         } elseif (property_exists($offer, 'published_at')) {
             $offer->published_at = $nowImmutable;
+        }
+
+        // FIX : Ajout du champ obligatoire 'starts_at'
+        if (method_exists($offer, 'setStartsAt')) {
+            try {
+                $offer->setStartsAt($nowImmutable);
+            } catch (\TypeError $e) {
+                $offer->setStartsAt(new \DateTime());
+            }
+        } elseif (property_exists($offer, 'starts_at')) {
+            $offer->starts_at = $nowImmutable;
         }
 
         // Champ 'is_duplicate'
