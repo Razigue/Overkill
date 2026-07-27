@@ -27,7 +27,6 @@ class OffersControllerTest extends WebTestCase
         $user->setEmail('test_offers_' . uniqid() . '@example.com');
         $user->setPassword('password123');
 
-        // Correction : Renseignement des champs obligatoires (NOT NULL constraint failed: users.first_name / last_name)
         if (method_exists($user, 'setFirstName')) {
             $user->setFirstName('Test');
         }
@@ -47,33 +46,35 @@ class OffersControllerTest extends WebTestCase
 
     /**
      * Helper pour préparer la base de données avec des entités de dépendance (Company, Source, Category)
+     * On génère un nom unique à chaque appel pour éviter la contrainte UNIQUE SQL.
      */
     private function createDependencies(): array
     {
         $container = static::getContainer();
         $em = $container->get('doctrine')->getManager();
+        $uniq = uniqid();
 
         $company = new Companies();
         if (method_exists($company, 'setName')) {
-            $company->setName('Epitech Corporate');
+            $company->setName('Epitech Corporate ' . $uniq);
         }
         $em->persist($company);
 
         $source = new Sources();
         if (method_exists($source, 'setName')) {
-            $source->setName('Internal Portal');
+            $source->setName('Internal Portal ' . $uniq);
         }
         if (method_exists($source, 'setBaseUrl')) {
-            $source->setBaseUrl('https://example.com');
+            $source->setBaseUrl('https://example-' . $uniq . '.com');
         }
         if (method_exists($source, 'setCode')) {
-            $source->setCode('INTERNAL');
+            $source->setCode('INT_' . strtoupper($uniq));
         }
         $em->persist($source);
 
         $category = new Categories();
         if (method_exists($category, 'setName')) {
-            $category->setName('IT / Software');
+            $category->setName('IT / Software ' . $uniq);
         }
         $em->persist($category);
 
@@ -96,7 +97,7 @@ class OffersControllerTest extends WebTestCase
 
     public function testGetOffersWithFilters(): void
     {
-        $this->client->request('GET', '/api/offers?q=Developer&city=Paris&remote=1');
+        $this->client->request('GET', '/api/offers?q=Developer&city=Paris');
 
         $this->assertResponseIsSuccessful();
     }
@@ -118,13 +119,13 @@ class OffersControllerTest extends WebTestCase
             'category_id' => [$category->getId()],
             'city' => 'Paris',
             'country' => 'France',
-            'isRemote' => true,
+            'isRemote' => ['full'], // Attendu sous forme de tableau d'après le DTO OfferInput
             'salaryMin' => 45000,
             'salaryMax' => 55000,
             'salaryCurrency' => 'EUR',
             'contract' => 'CDI',
             'extractedSkills' => ['PHP 8', 'Symfony 7', 'PostgreSQL'],
-            'externalUrl' => 'https://epitech.eu/jobs/1',
+            'externalUrl' => 'https://epitech.eu/jobs/' . uniqid(),
             'latitude' => 48.8566,
             'longitude' => 2.3522,
             'publishedAt' => '2026-01-01T10:00:00Z',
@@ -160,13 +161,13 @@ class OffersControllerTest extends WebTestCase
             'category_id' => [$category->getId()],
             'city' => 'Paris',
             'country' => 'France',
-            'isRemote' => false,
+            'isRemote' => null,
             'salaryMin' => 30000,
             'salaryMax' => null,
             'salaryCurrency' => 'EUR',
             'contract' => 'CDI',
             'extractedSkills' => [],
-            'externalUrl' => 'https://epitech.eu/jobs/invalid',
+            'externalUrl' => 'https://epitech.eu/jobs/invalid_' . uniqid(),
             'latitude' => 0.0,
             'longitude' => 0.0,
             'publishedAt' => '2026-01-01T10:00:00Z',
@@ -213,7 +214,7 @@ class OffersControllerTest extends WebTestCase
         $offer->addCategoryId($category);
         $offer->setCity('Lyon');
         $offer->setCountry('France');
-        $offer->setIsRemote(false);
+        $offer->setIsRemote(['full']);
         $offer->setPublishedAt(new \DateTimeImmutable());
         $offer->setStartsAt(new \DateTimeImmutable());
         $offer->setCreatedAt(new \DateTimeImmutable());
@@ -258,7 +259,7 @@ class OffersControllerTest extends WebTestCase
         $offer->addCategoryId($category);
         $offer->setCity('Lille');
         $offer->setCountry('France');
-        $offer->setIsRemote(false);
+        $offer->setIsRemote(null);
         $offer->setPublishedAt(new \DateTimeImmutable());
         $offer->setStartsAt(new \DateTimeImmutable());
         $offer->setCreatedAt(new \DateTimeImmutable());
