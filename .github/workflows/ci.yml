@@ -54,6 +54,16 @@ jobs:
         working-directory: ./Overkill_Api
         run: composer install --no-progress --prefer-dist --no-scripts
 
+      # S'assurer que le composant Symfony Dotenv trouve un fichier .env (s'il n'y a pas de .env.test)
+      - name: Ensure .env file exists
+        working-directory: ./Overkill_Api
+        run: |
+          if [ -f .env.test ]; then
+            cp .env.test .env
+          else
+            touch .env
+          fi
+
       # Réinitialiser proprement la base de données en ciblant Overkill_Api
       - name: Prepare Database for Tests
         working-directory: ./Overkill_Api
