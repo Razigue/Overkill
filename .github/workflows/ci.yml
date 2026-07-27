@@ -41,6 +41,9 @@ jobs:
       DEFAULT_URI: "http://localhost"
       MESSENGER_TRANSPORT_DSN: "in-memory://"
       MAILER_DSN: "null://null"
+      JWT_SECRET_KEY: "%kernel.project_dir%/config/jwt/private.pem"
+      JWT_PUBLIC_KEY: "%kernel.project_dir%/config/jwt/public.pem"
+      JWT_PASSPHRASE: "jwt_test_passphrase"
     steps:
       - uses: actions/checkout@v4
 
@@ -57,7 +60,15 @@ jobs:
         working-directory: ./Overkill_Api
         run: composer install --no-progress --prefer-dist --no-scripts
 
-      # S'assurer que .env existe et contient les fallback d'environnement
+      # Génération des clés JWT pour la suite de tests
+      - name: Generate SSL Keys for JWT
+        working-directory: ./Overkill_Api
+        run: |
+          mkdir -p config/jwt
+          openssl genpkey -out config/jwt/private.pem -aes256 -algorithm rsa -pkeyopt rsa_keygen_bits:4096 -pass pass:jwt_test_passphrase
+          openssl pkey -in config/jwt/private.pem -passin pass:jwt_test_passphrase -pubout -out config/jwt/public.pem
+
+      # S'assurer que .env existe et contient l'intégralité des variables de configuration
       - name: Ensure .env file exists with defaults
         working-directory: ./Overkill_Api
         run: |
@@ -70,15 +81,18 @@ jobs:
             echo "DEFAULT_URI=http://localhost" >> .env
             echo "MESSENGER_TRANSPORT_DSN=in-memory://" >> .env
             echo "MAILER_DSN=null://null" >> .env
+            echo "JWT_SECRET_KEY=%kernel.project_dir%/config/jwt/private.pem" >> .env
+            echo "JWT_PUBLIC_KEY=%kernel.project_dir%/config/jwt/public.pem" >> .env
+            echo "JWT_PASSPHRASE=jwt_test_passphrase" >> .env
           fi
 
-      # Réinitialiser proprement la base de données en ciblant Overkill_Api
+      # Réinitialiser proprement la base de données
       - name: Prepare Database for Tests
         working-directory: ./Overkill_Api
         run: |
           php bin/console doctrine:schema:update --force --env=test
 
-      # Exécuter PHPUnit depuis le bon dossier
+      # Exécuter PHPUnit
       - name: Run Backend Tests
         working-directory: ./Overkill_Api
         run: vendor/bin/phpunit
