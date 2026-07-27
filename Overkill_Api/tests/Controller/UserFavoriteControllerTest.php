@@ -2,7 +2,7 @@
 
 namespace App\Tests\Controller;
 
-use App\Entity\Offer;
+use App\Entity\Offers;
 use App\Entity\User;
 use App\Entity\UserFavorite;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -22,14 +22,14 @@ class UserFavoriteControllerTest extends WebTestCase
     }
 
     /**
-     * Méthode utilitaire pour créer des offres valides dans les tests
+     * Helper pour instancier l'offre d'emploi avec créée_at renseigné
      */
-    private function createTestOffer(string $title = 'Test Offer'): Offer
+    private function createTestOffer(string $title = 'Test Offer'): JobOffer
     {
-        $offer = new Offer();
+        $offer = new JobOffer();
         $offer->setTitle($title);
-        
-        // CORRECTION : Définition obligatoire de created_at pour éviter le NOT NULL violation
+
+        // Assure que created_at n'est pas null
         if (method_exists($offer, 'setCreatedAt')) {
             $offer->setCreatedAt(new \DateTimeImmutable());
         }
@@ -37,9 +37,6 @@ class UserFavoriteControllerTest extends WebTestCase
         return $offer;
     }
 
-    /**
-     * Méthode utilitaire pour créer un utilisateur de test
-     */
     private function createTestUser(string $email = 'user@example.com'): User
     {
         $user = new User();
@@ -49,9 +46,6 @@ class UserFavoriteControllerTest extends WebTestCase
         return $user;
     }
 
-    /**
-     * Exemple de helper de création de fixtures (Ligne ~182 dans ton projet)
-     */
     private function setupFixtures(): array
     {
         $user = $this->createTestUser();
@@ -59,8 +53,6 @@ class UserFavoriteControllerTest extends WebTestCase
 
         $this->entityManager->persist($user);
         $this->entityManager->persist($offer);
-        
-        // C'est ici (ligne 182) que le flush échouait car offers.created_at était null
         $this->entityManager->flush();
 
         return [$user, $offer];
@@ -70,11 +62,10 @@ class UserFavoriteControllerTest extends WebTestCase
     {
         [$user, $offer] = $this->setupFixtures();
 
-        // Ajout d'un favori pour le test
         $favorite = new UserFavorite();
         $favorite->setUser($user);
         $favorite->setOffer($offer);
-        
+
         $this->entityManager->persist($favorite);
         $this->entityManager->flush();
 
@@ -105,7 +96,7 @@ class UserFavoriteControllerTest extends WebTestCase
         $favorite = new UserFavorite();
         $favorite->setUser($user);
         $favorite->setOffer($offer);
-        
+
         $this->entityManager->persist($favorite);
         $this->entityManager->flush();
 
@@ -115,7 +106,6 @@ class UserFavoriteControllerTest extends WebTestCase
             'offerId' => $offer->getId(),
         ]));
 
-        // Doit retourner un statut d'erreur (ex: 400 ou 409)
         $this->assertResponseStatusCodeSame(400);
     }
 
@@ -126,7 +116,7 @@ class UserFavoriteControllerTest extends WebTestCase
         $favorite = new UserFavorite();
         $favorite->setUser($user);
         $favorite->setOffer($offer);
-        
+
         $this->entityManager->persist($favorite);
         $this->entityManager->flush();
 
