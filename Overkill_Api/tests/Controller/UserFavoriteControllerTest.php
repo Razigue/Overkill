@@ -42,23 +42,72 @@ class UserFavoriteControllerTest extends WebTestCase
 
         $this->entityManager->persist($user);
 
-        // 2. Création de l'offre de test avec tous les champs requis
+        // 2. Création de l'offre de test
         $offer = new Offers();
         $offer->setTitle('Développeur Symfony Test');
         $offer->setDescription('Description de test');
 
-        // Champ 'kind'
-        if (method_exists($offer, 'setKind')) {
-            $offer->setKind('CDI');
-        } elseif (property_exists($offer, 'kind')) {
-            $offer->kind = 'CDI';
+        // On remplit 'extracted_skills' / 'extractedSkills' via Setter ou Réflexion PHP
+        $skills = ['PHP', 'Symfony'];
+        $skillsJson = json_encode($skills);
+
+        $reflection = new \ReflectionClass(Offers::class);
+
+        // On recherche les méthodes de type set*Skill* ou setExtracted*
+        $methods = $reflection->getMethods();
+        $skillSetters = ['setExtractedSkills', 'setExtractedSkill', 'setSkills', 'setSkill'];
+        $setterCalled = false;
+
+        foreach ($skillSetters as $methodName) {
+            if ($reflection->hasMethod($methodName)) {
+                try {
+                    $offer->$methodName($skills);
+                    $setterCalled = true;
+                    break;
+                } catch (\Throwable $e) {
+                    try {
+                        $offer->$methodName($skillsJson);
+                        $setterCalled = true;
+                        break;
+                    } catch (\Throwable $e2) {
+                        // Continue d'essayer d'autres setters
+                    }
+                }
+            }
         }
 
-        // FIX : Ajout du champ obligatoire 'contract'
+        // Si aucun setter n'a fonctionné, on force la valeur directement sur la propriété via réflexion
+        if (!$setterCalled) {
+            foreach ($reflection->getProperties() as $property) {
+                $pName = strtolower($property->getName());
+                if (str_contains($pName, 'skill')) {
+                    $property->setAccessible(true);
+                    try {
+                        $property->setValue($offer, $skills);
+                    } catch (\Throwable $e) {
+                        $property->setValue($offer, $skillsJson);
+                    }
+                }
+            }
+        }
+
+        // Champ 'contract' / 'kind'
         if (method_exists($offer, 'setContract')) {
             $offer->setContract('CDI');
-        } elseif (property_exists($offer, 'contract')) {
-            $offer->contract = 'CDI';
+        }
+        if (method_exists($offer, 'setKind')) {
+            $offer->setKind('CDI');
+        }
+
+        // Champs optionnels/obligatoires courants
+        if (method_exists($offer, 'setCompany')) {
+            $offer->setCompany('Test Company');
+        }
+        if (method_exists($offer, 'setLocation')) {
+            $offer->setLocation('Paris');
+        }
+        if (method_exists($offer, 'setUrl')) {
+            $offer->setUrl('https://example.com/job/1');
         }
 
         // Champ 'published_at'
@@ -66,29 +115,23 @@ class UserFavoriteControllerTest extends WebTestCase
         if (method_exists($offer, 'setPublishedAt')) {
             try {
                 $offer->setPublishedAt($nowImmutable);
-            } catch (\TypeError $e) {
+            } catch (\Throwable $e) {
                 $offer->setPublishedAt(new \DateTime());
             }
-        } elseif (property_exists($offer, 'published_at')) {
-            $offer->published_at = $nowImmutable;
         }
 
         // Champ 'starts_at'
         if (method_exists($offer, 'setStartsAt')) {
             try {
                 $offer->setStartsAt($nowImmutable);
-            } catch (\TypeError $e) {
+            } catch (\Throwable $e) {
                 $offer->setStartsAt(new \DateTime());
             }
-        } elseif (property_exists($offer, 'starts_at')) {
-            $offer->starts_at = $nowImmutable;
         }
 
         // Champ 'is_duplicate'
         if (method_exists($offer, 'setIsDuplicate')) {
             $offer->setIsDuplicate(false);
-        } elseif (property_exists($offer, 'is_duplicate')) {
-            $offer->is_duplicate = false;
         }
 
         $this->entityManager->persist($offer);

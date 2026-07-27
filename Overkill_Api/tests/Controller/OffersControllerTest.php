@@ -2,248 +2,307 @@
 
 namespace App\Tests\Controller;
 
+use App\Entity\Categories;
+use App\Entity\Companies;
 use App\Entity\Offers;
+use App\Entity\Sources;
 use App\Entity\User;
-use App\Entity\UserFavorites;
-use Doctrine\ORM\EntityManagerInterface;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
-class UserFavoriteControllerTest extends WebTestCase
+class OffersControllerTest extends WebTestCase
 {
-    private KernelBrowser $client;
-    private EntityManagerInterface $entityManager;
-    private ?string $token = null;
+    private ?KernelBrowser $client = null;
     private ?User $testUser = null;
-    private ?Offers $testOffer = null;
 
     protected function setUp(): void
     {
+        parent::setUp();
         $this->client = static::createClient();
-        $this->entityManager = static::getContainer()->get(EntityManagerInterface::class);
 
-        $this->createTestData();
+        // 1. Création et authentification d'un utilisateur de test
+        $container = static::getContainer();
+        $em = $container->get('doctrine')->getManager();
+
+        $this->testUser = new User();
+        $this->testUser->setEmail('test_offers_' . uniqid() . '@example.com');
+        $this->testUser->setPassword('password123');
+
+        if (method_exists($this->testUser, 'setFirstName')) {
+            $this->testUser->setFirstName('Test');
+        }
+        if (method_exists($this->testUser, 'setLastName')) {
+            $this->testUser->setLastName('User');
+        }
+        if (method_exists($this->testUser, 'setRoles')) {
+            $this->testUser->setRoles(['ROLE_USER']);
+        }
+
+        $em->persist($this->testUser);
+        $em->flush();
+
+        // 2. Génération du token JWT et configuration de l'en-tête Authorization global
+        $token = null;
+        if ($container->has(JWTTokenManagerInterface::class)) {
+            $token = $container->get(JWTTokenManagerInterface::class)->create($this->testUser);
+        } elseif ($container->has('lexik_jwt_authentication.jwt_manager')) {
+            $token = $container->get('lexik_jwt_authentication.jwt_manager')->create($this->testUser);
+        }
+
+        if ($token) {
+            $this->client->setServerParameter('HTTP_AUTHORIZATION', sprintf('Bearer %s', $token));
+        }
+
+        $this->client->loginUser($this->testUser);
     }
 
-    private function createTestData(): void
+    /**
+     * Helper pour préparer la base de données avec des entités de dépendance (Company, Source, Category)
+     * On génère un nom unique à chaque appel pour éviter les contraintes UNIQUE SQL.
+     */
+    private function createDependencies(): array
     {
-        // 1. Création de l'utilisateur de test
-        $user = new User();
-        $user->setEmail('test_favorite_' . uniqid() . '@example.com');
-        $user->setPassword(password_hash('password123', PASSWORD_BCRYPT));
-        $user->setRoles(['ROLE_USER']);
+        $container = static::getContainer();
+        $em = $container->get('doctrine')->getManager();
+        $uniq = uniqid();
 
-        if (method_exists($user, 'setFirstName')) {
-            $user->setFirstName('John');
+        $company = new Companies();
+        if (method_exists($company, 'setName')) {
+            $company->setName('Epitech Corporate ' . $uniq);
         }
-        if (method_exists($user, 'setLastName')) {
-            $user->setLastName('Doe');
+        $em->persist($company);
+
+        $source = new Sources();
+        if (method_exists($source, 'setName')) {
+            $source->setName('Internal Portal ' . $uniq);
         }
-
-        $this->entityManager->persist($user);
-
-        // 2. Création de l'offre de test
-        $offer = new Offers();
-        $offer->setTitle('Développeur Symfony Test');
-        $offer->setDescription('Description de test');
-
-        // Fix de la propriété extracted_skills (support de camelCase et snake_case)
-        $skillsArray = ['PHP', 'Symfony'];
-        $skillsJson = json_encode($skillsArray);
-
-        if (method_exists($offer, 'setExtractedSkills')) {
-            try {
-                $offer->setExtractedSkills($skillsArray);
-            } catch (\TypeError $e) {
-                $offer->setExtractedSkills($skillsJson);
-            }
-        } elseif (property_exists($offer, 'extractedSkills')) {
-            $offer->extractedSkills = $skillsArray;
-        } elseif (property_exists($offer, 'extracted_skills')) {
-            $offer->extracted_skills = $skillsArray;
+        if (method_exists($source, 'setBaseUrl')) {
+            $source->setBaseUrl('https://example-' . $uniq . '.com');
         }
-
-        // Champ 'contract'
-        if (method_exists($offer, 'setContract')) {
-            $offer->setContract('CDI');
-        } elseif (property_exists($offer, 'contract')) {
-            $offer->contract = 'CDI';
+        if (method_exists($source, 'setCode')) {
+            $source->setCode('INT_' . strtoupper($uniq));
         }
+        $em->persist($source);
 
-        // Champ 'kind'
-        if (method_exists($offer, 'setKind')) {
-            $offer->setKind('CDI');
-        } elseif (property_exists($offer, 'kind')) {
-            $offer->kind = 'CDI';
+        $category = new Categories();
+        if (method_exists($category, 'setName')) {
+            $category->setName('IT / Software ' . $uniq);
         }
+        $em->persist($category);
 
-        // Champs optionnels/obligatoires courants
-        if (method_exists($offer, 'setCompany')) {
-            $offer->setCompany('Test Company');
-        }
-        if (method_exists($offer, 'setLocation')) {
-            $offer->setLocation('Paris');
-        }
-        if (method_exists($offer, 'setUrl')) {
-            $offer->setUrl('https://example.com/job/1');
-        }
+        $em->flush();
 
-        // Champ 'published_at'
-        $nowImmutable = new \DateTimeImmutable();
-        if (method_exists($offer, 'setPublishedAt')) {
-            try {
-                $offer->setPublishedAt($nowImmutable);
-            } catch (\TypeError $e) {
-                $offer->setPublishedAt(new \DateTime());
-            }
-        } elseif (property_exists($offer, 'publishedAt')) {
-            $offer->publishedAt = $nowImmutable;
-        }
-
-        // Champ 'starts_at'
-        if (method_exists($offer, 'setStartsAt')) {
-            try {
-                $offer->setStartsAt($nowImmutable);
-            } catch (\TypeError $e) {
-                $offer->setStartsAt(new \DateTime());
-            }
-        } elseif (property_exists($offer, 'startsAt')) {
-            $offer->startsAt = $nowImmutable;
-        }
-
-        // Champ 'is_duplicate'
-        if (method_exists($offer, 'setIsDuplicate')) {
-            $offer->setIsDuplicate(false);
-        } elseif (property_exists($offer, 'isDuplicate')) {
-            $offer->isDuplicate = false;
-        }
-
-        $this->entityManager->persist($offer);
-        $this->entityManager->flush();
-
-        $this->testUser = $user;
-        $this->testOffer = $offer;
-
-        // 3. Authentification JWT
-        $this->client->request(
-            'POST',
-            '/api/login_check',
-            [],
-            [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode([
-                'username' => $user->getEmail(),
-                'password' => 'password123',
-            ])
-        );
-
-        $response = $this->client->getResponse();
-        if ($response->getStatusCode() === 200) {
-            $data = json_decode($response->getContent(), true);
-            $this->token = $data['token'] ?? null;
-        }
+        return [$company, $source, $category];
     }
 
-    private function getAuthHeaders(): array
-    {
-        return [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $this->token,
-            'CONTENT_TYPE' => 'application/json',
-        ];
-    }
+    // ==========================================
+    // 1. TESTS GET /api/offers (RECHERCHE & LISTE)
+    // ==========================================
 
-    public function testGetUserFavoritesList(): void
+    public function testGetOffersEmptyOrList(): void
     {
-        $this->client->request('GET', '/api/favorites', [], [], $this->getAuthHeaders());
-        
+        $this->client->request('GET', '/api/offers');
+
         $this->assertResponseIsSuccessful();
         $this->assertResponseHeaderSame('content-type', 'application/json');
     }
 
-    public function testPostUserFavoriteSuccess(): void
+    public function testGetOffersWithFilters(): void
     {
+        $this->client->request('GET', '/api/offers?q=Developer&city=Paris');
+
+        $this->assertResponseIsSuccessful();
+    }
+
+    // ==========================================
+    // 2. TESTS POST /api/offers (CRÉATION)
+    // ==========================================
+
+    public function testPostOfferSuccess(): void
+    {
+        [$company, $source, $category] = $this->createDependencies();
+
+        $payload = [
+            'title' => 'Développeur PHP / Symfony',
+            'kind' => 'job',
+            'description' => 'Un super poste de dev Symfony.',
+            'company_id' => $company->getId(),
+            'source_id' => $source->getId(),
+            'category_id' => [$category->getId()],
+            'city' => 'Paris',
+            'country' => 'FR',
+            'isRemote' => ['full'],
+            'salaryMin' => 45000,
+            'salaryMax' => 55000,
+            'salaryCurrency' => 'EUR',
+            'contract' => 'CDI',
+            'extractedSkills' => ['PHP 8', 'Symfony 7', 'PostgreSQL'],
+            'externalUrl' => 'https://epitech.eu/jobs/' . uniqid(),
+            'latitude' => 48.8566,
+            'longitude' => 2.3522,
+            'publishedAt' => '2026-01-01T10:00:00Z',
+            'startsAt' => '2026-02-01T09:00:00Z',
+            'endsAt' => null,
+        ];
+
         $this->client->request(
             'POST',
-            '/api/favorites',
+            '/api/offers',
             [],
             [],
-            $this->getAuthHeaders(),
-            json_encode(['offer_id' => $this->testOffer->getId()])
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode($payload)
         );
 
-        $this->assertTrue(
-            in_array($this->client->getResponse()->getStatusCode(), [200, 201]),
-            'Le statut de réponse doit être 200 ou 201'
-        );
+        $this->assertResponseStatusCodeSame(201);
+        $responseData = json_decode($this->client->getResponse()->getContent(), true);
+
+        // Extraire la structure principale
+        $offerData = $responseData['offer'] ?? $responseData['data'] ?? $responseData;
+
+        // Vérifier la présence du titre
+        $title = $offerData['title'] ?? null;
+        $this->assertSame('Développeur PHP / Symfony', $title);
     }
 
-    public function testPostUserFavoriteAlreadyExists(): void
+    public function testPostOfferCompanyNotFound(): void
     {
-        $favorite = new UserFavorites();
-        
-        if (method_exists($favorite, 'setUser')) {
-            $favorite->setUser($this->testUser);
-        } elseif (method_exists($favorite, 'setUserId')) {
-            $favorite->setUserId($this->testUser);
-        }
+        [$company, $source, $category] = $this->createDependencies();
 
-        if (method_exists($favorite, 'setOffer')) {
-            $favorite->setOffer($this->testOffer);
-        } elseif (method_exists($favorite, 'setOfferId')) {
-            $favorite->setOfferId($this->testOffer);
-        }
-
-        $this->entityManager->persist($favorite);
-        $this->entityManager->flush();
+        $payload = [
+            'title' => 'Poste sans entreprise valide',
+            'kind' => 'job',
+            'description' => 'Description',
+            'company_id' => 999999,
+            'source_id' => $source->getId(),
+            'category_id' => [$category->getId()],
+            'city' => 'Paris',
+            'country' => 'FR',
+            'isRemote' => null,
+            'salaryMin' => 30000,
+            'salaryMax' => null,
+            'salaryCurrency' => 'EUR',
+            'contract' => 'CDI',
+            'extractedSkills' => [],
+            'externalUrl' => 'https://epitech.eu/jobs/invalid_' . uniqid(),
+            'latitude' => 0.0,
+            'longitude' => 0.0,
+            'publishedAt' => '2026-01-01T10:00:00Z',
+            'startsAt' => '2026-02-01T09:00:00Z',
+            'endsAt' => null,
+        ];
 
         $this->client->request(
             'POST',
-            '/api/favorites',
+            '/api/offers',
             [],
             [],
-            $this->getAuthHeaders(),
-            json_encode(['offer_id' => $this->testOffer->getId()])
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode($payload)
         );
 
-        $this->assertLessThan(500, $this->client->getResponse()->getStatusCode());
+        $this->assertResponseStatusCodeSame(404);
     }
 
-    public function testDeleteUserFavoriteSuccess(): void
+    // ==========================================
+    // 3. TESTS GET /api/offers/{id} (DÉTAILS)
+    // ==========================================
+
+    public function testGetOfferByIdNotFound(): void
     {
-        $favorite = new UserFavorites();
-        
-        if (method_exists($favorite, 'setUser')) {
-            $favorite->setUser($this->testUser);
-        } elseif (method_exists($favorite, 'setUserId')) {
-            $favorite->setUserId($this->testUser);
-        }
+        $this->client->request('GET', '/api/offers/999999');
 
-        if (method_exists($favorite, 'setOffer')) {
-            $favorite->setOffer($this->testOffer);
-        } elseif (method_exists($favorite, 'setOfferId')) {
-            $favorite->setOfferId($this->testOffer);
-        }
-
-        $this->entityManager->persist($favorite);
-        $this->entityManager->flush();
-
-        $this->client->request(
-            'DELETE',
-            '/api/favorites/' . $this->testOffer->getId(),
-            [],
-            [],
-            $this->getAuthHeaders()
-        );
-
-        $this->assertTrue(
-            in_array($this->client->getResponse()->getStatusCode(), [200, 204]),
-            'La suppression doit retourner un code HTTP 200 ou 204'
-        );
+        $this->assertResponseStatusCodeSame(404);
+        $responseData = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertSame('Aucune offre trouvee', $responseData['error']);
     }
 
-    protected function tearDown(): void
+    public function testGetOfferByIdSuccess(): void
     {
-        parent::tearDown();
-        $this->entityManager->close();
+        [$company, $source, $category] = $this->createDependencies();
+        $em = static::getContainer()->get('doctrine')->getManager();
+
+        $offer = new Offers();
+        $offer->setTitle('Offre de test ID');
+        $offer->setKind('job');
+        $offer->setContract('CDI');
+        $offer->setExtractedSkills(['PHP', 'Symfony']);
+        $offer->setExternalUrl('https://epitech.eu/jobs/test-' . uniqid());
+        $offer->setDescription('Description test');
+        $offer->setCompanyId($company);
+        $offer->setSourceId($source);
+        $offer->addCategoryId($category);
+        $offer->setCity('Lyon');
+        $offer->setCountry('FR');
+        $offer->setIsRemote(['full']);
+        $offer->setPublishedAt(new \DateTimeImmutable());
+        $offer->setStartsAt(new \DateTimeImmutable());
+        $offer->setCreatedAt(new \DateTimeImmutable());
+        $offer->setUpdatedAt(new \DateTimeImmutable());
+        $offer->setIsDuplicate(false);
+        $offer->setViewsCount(0);
+
+        $em->persist($offer);
+        $em->flush();
+
+        $this->client->request('GET', '/api/offers/' . $offer->getId());
+
+        $this->assertResponseIsSuccessful();
+        $responseData = json_decode($this->client->getResponse()->getContent(), true);
+        $offerData = $responseData['offer'] ?? $responseData['data'] ?? $responseData;
+        $this->assertSame('Offre de test ID', $offerData['title'] ?? null);
+    }
+
+    // ==========================================
+    // 4. TESTS DELETE /api/offers/{id} (SUPPRESSION)
+    // ==========================================
+
+    public function testDeleteOfferNotFound(): void
+    {
+        $this->client->request('DELETE', '/api/offers/999999');
+
+        $this->assertResponseStatusCodeSame(404);
+        $responseData = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertSame('Aucune offre trouvee', $responseData['error']);
+    }
+
+    public function testDeleteOfferSuccess(): void
+    {
+        [$company, $source, $category] = $this->createDependencies();
+        $em = static::getContainer()->get('doctrine')->getManager();
+
+        $offer = new Offers();
+        $offer->setTitle('Offre à supprimer');
+        $offer->setKind('job');
+        $offer->setContract('CDI');
+        $offer->setExtractedSkills(['PHP', 'Symfony']);
+        $offer->setExternalUrl('https://epitech.eu/jobs/delete-' . uniqid());
+        $offer->setDescription('Description à supprimer');
+        $offer->setCompanyId($company);
+        $offer->setSourceId($source);
+        $offer->addCategoryId($category);
+        $offer->setCity('Lille');
+        $offer->setCountry('FR');
+        $offer->setIsRemote(null);
+        $offer->setPublishedAt(new \DateTimeImmutable());
+        $offer->setStartsAt(new \DateTimeImmutable());
+        $offer->setCreatedAt(new \DateTimeImmutable());
+        $offer->setUpdatedAt(new \DateTimeImmutable());
+        $offer->setIsDuplicate(false);
+        $offer->setViewsCount(0);
+
+        $em->persist($offer);
+        $em->flush();
+
+        $offerId = $offer->getId();
+
+        // 1ère requête : Suppression de l'offre
+        $this->client->request('DELETE', '/api/offers/' . $offerId);
+        $this->assertResponseStatusCodeSame(204);
+
+        // 2ème requête : Vérification que l'offre est bien supprimée (404)
+        $this->client->request('GET', '/api/offers/' . $offerId);
+        $this->assertResponseStatusCodeSame(404);
     }
 }
