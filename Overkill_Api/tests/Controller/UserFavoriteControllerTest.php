@@ -2,138 +2,118 @@
 
 namespace App\Tests\Controller;
 
-use App\Entity\Offers;
+use App\Entity\Offer;
 use App\Entity\User;
 use App\Entity\UserFavorite;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 class UserFavoriteControllerTest extends WebTestCase
 {
-    private $client;
+    private KernelBrowser $client;
     private EntityManagerInterface $entityManager;
+    private User $user;
+    private Offer $offer;
 
     protected function setUp(): void
     {
         $this->client = static::createClient();
-        $this->entityManager = static::$kernel->getContainer()
-            ->get('doctrine')
-            ->getManager();
-    }
+        $this->entityManager = static::getContainer()->get(EntityManagerInterface::class);
 
-    /**
-     * Helper pour instancier l'offre d'emploi avec created_at renseigné
-     */
-    private function createTestOffer(string $title = 'Test Offer'): Offers
-    {
-        $offer = new Offers();
-        $offer->setTitle($title);
+        // Clean up database entities for tests
+        $this->entityManager->createQuery('DELETE FROM App\Entity\UserFavorite')->execute();
+        $this->entityManager->createQuery('DELETE FROM App\Entity\Offer')->execute();
+        $this->entityManager->createQuery('DELETE FROM App\Entity\User')->execute();
 
-        if (method_exists($offer, 'setCreatedAt')) {
-            $offer->setCreatedAt(new \DateTimeImmutable());
-        }
+        // Create test User
+        $this->user = new User();
+        $this->user->setEmail('test_favorite_' . uniqid() . '@example.com');
+        $this->user->setPassword('password123');
+        $this->user->setRoles(['ROLE_USER']);
+        $this->entityManager->persist($this->user);
 
-        return $offer;
-    }
-
-    /**
-     * Helper pour instancier un utilisateur de test complet
-     */
-    private function createTestUser(string $email = 'user@example.com'): User
-    {
-        $user = new User();
-        $user->setEmail($email);
-        $user->setPassword('password123');
-
-        // Renseignement des champs obligatoires (NOT NULL)
-        if (method_exists($user, 'setFirstName')) {
-            $user->setFirstName('John');
-        }
-
-        if (method_exists($user, 'setLastName')) {
-            $user->setLastName('Doe');
-        }
-
-        return $user;
-    }
-
-    private function setupFixtures(): array
-    {
-        $user = $this->createTestUser();
-        $offer = $this->createTestOffer();
-
-        $this->entityManager->persist($user);
-        $this->entityManager->persist($offer);
+        // Create test Offer
+        $this->offer = new Offer();
+        $this->offer->setTitle('Test Job Offer');
+        $this->offer->setDescription('Test Description');
+        $this->offer->setCompany('Test Company');
+        $this->offer->setKind('job'); // Fix: Ajout du champ obligatoire 'kind'
+        
+        $this->entityManager->persist($this->offer);
         $this->entityManager->flush();
-
-        return [$user, $offer];
     }
 
     public function testGetUserFavoritesList(): void
     {
-        [$user, $offer] = $this->setupFixtures();
+        $this->client->loginUser($this->user);
 
         $favorite = new UserFavorite();
-        $favorite->setUser($user);
-        $favorite->setOffer($offer);
-
+        $favorite->setUser($this->user);
+        $favorite->setOffer($this->offer);
         $this->entityManager->persist($favorite);
         $this->entityManager->flush();
 
-        $this->client->request('GET', '/api/favorites', [], [], [
-            'HTTP_ACCEPT' => 'application/json',
-        ]);
+        $this->client->request('GET', '/api/favorites');
 
         $this->assertResponseIsSuccessful();
+        $this->assertResponseHeaderSame('content-type', 'application/json');
+        
+        $responseData = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertIsArray($responseData);
     }
 
     public function testPostUserFavoriteSuccess(): void
     {
-        [$user, $offer] = $this->setupFixtures();
+        $this->client->loginUser($this->user);
 
-        $this->client->request('POST', '/api/favorites', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-        ], json_encode([
-            'offerId' => $offer->getId(),
-        ]));
+        $this->client->request(
+            'POST',
+            '/api/favorites',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['offerId' => $this->offer->getId()])
+        );
 
-        $this->assertResponseIsSuccessful();
+        $this->assertResponseStatusCodeSame(201);
     }
 
     public function testPostUserFavoriteAlreadyExists(): void
     {
-        [$user, $offer] = $this->setupFixtures();
+        $this->client->loginUser($this->user);
 
         $favorite = new UserFavorite();
-        $favorite->setUser($user);
-        $favorite->setOffer($offer);
-
+        $favorite->setUser($this->user);
+        $favorite->setOffer($this->offer);
         $this->entityManager->persist($favorite);
         $this->entityManager->flush();
 
-        $this->client->request('POST', '/api/favorites', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-        ], json_encode([
-            'offerId' => $offer->getId(),
-        ]));
+        $this->client->request(
+            'POST',
+            '/api/favorites',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['offerId' => $this->offer->getId()])
+        );
 
         $this->assertResponseStatusCodeSame(400);
     }
 
     public function testDeleteUserFavoriteSuccess(): void
     {
-        [$user, $offer] = $this->setupFixtures();
+        $this->client->loginUser($this->user);
 
         $favorite = new UserFavorite();
-        $favorite->setUser($user);
-        $favorite->setOffer($offer);
-
+        $favorite->setUser($this->user);
+        $favorite->setOffer($this->offer);
         $this->entityManager->persist($favorite);
         $this->entityManager->flush();
 
-        $this->client->request('DELETE', '/api/favorites/' . $favorite->getId());
+        $this->client->request('DELETE', '/api/favorites/' . $this->offer->getId());
 
-        $this->assertResponseIsSuccessful();
+        $this->assertResponseStatusCodeSame(204);
     }
 
     protected function tearDown(): void
