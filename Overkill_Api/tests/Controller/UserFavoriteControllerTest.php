@@ -47,6 +47,14 @@ class UserFavoriteControllerTest extends WebTestCase
         $offer->setTitle('Développeur Symfony Test');
         $offer->setDescription('Description de test');
 
+        // Initialisation de viewsCount / views_count
+        if (method_exists($offer, 'setViewsCount')) {
+            $offer->setViewsCount(0);
+        }
+        if (method_exists($offer, 'setViews')) {
+            $offer->setViews(0);
+        }
+
         // Remplissage dynamique des compétences
         $skills = ['PHP', 'Symfony'];
         $skillsJson = json_encode($skills);
@@ -94,17 +102,6 @@ class UserFavoriteControllerTest extends WebTestCase
             $offer->setUrl('https://example.com/job/1');
         }
 
-        // Sécurité par réflexion pour 'external_url' ou 'url'
-        foreach ($reflection->getProperties() as $property) {
-            $pName = strtolower($property->getName());
-            if (str_contains($pName, 'url')) {
-                $property->setAccessible(true);
-                if ($property->getValue($offer) === null) {
-                    $property->setValue($offer, 'https://example.com/job/1');
-                }
-            }
-        }
-
         // Champ 'contract' / 'kind'
         if (method_exists($offer, 'setContract')) {
             $offer->setContract('CDI');
@@ -143,6 +140,42 @@ class UserFavoriteControllerTest extends WebTestCase
         // Champ 'is_duplicate'
         if (method_exists($offer, 'setIsDuplicate')) {
             $offer->setIsDuplicate(false);
+        }
+
+        // Sécurité universelle par réflexion : remplit TOUS les champs non-nullables restant à NULL
+        foreach ($reflection->getProperties() as $property) {
+            $property->setAccessible(true);
+            if ($property->getValue($offer) === null) {
+                $type = $property->getType();
+                if ($type && !$type->allowsNull()) {
+                    $typeName = $type->getName();
+                    switch ($typeName) {
+                        case 'int':
+                            $property->setValue($offer, 0);
+                            break;
+                        case 'bool':
+                            $property->setValue($offer, false);
+                            break;
+                        case 'string':
+                            if (str_contains(strtolower($property->getName()), 'url')) {
+                                $property->setValue($offer, 'https://example.com/job/1');
+                            } else {
+                                $property->setValue($offer, 'Default');
+                            }
+                            break;
+                        case 'array':
+                            $property->setValue($offer, []);
+                            break;
+                        case \DateTimeInterface::class:
+                        case \DateTimeImmutable::class:
+                            $property->setValue($offer, new \DateTimeImmutable());
+                            break;
+                        case \DateTime::class:
+                            $property->setValue($offer, new \DateTime());
+                            break;
+                    }
+                }
+            }
         }
 
         $this->entityManager->persist($offer);
