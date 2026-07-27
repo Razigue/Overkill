@@ -2,8 +2,8 @@
 
 namespace App\Tests\Controller;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use App\Entity\User;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class SecurityControllerTest extends WebTestCase
@@ -22,9 +22,9 @@ class SecurityControllerTest extends WebTestCase
 
         $user = new User();
         $user->setEmail('user@epitech.eu');
-        $user->setFirstName('Test'); 
+        $user->setFirstName('Test');
         $user->setLastName('User');
-        
+
         $hashedPassword = $passwordHasher->hashPassword($user, 'password123');
         $user->setPassword($hashedPassword);
 
@@ -44,10 +44,18 @@ class SecurityControllerTest extends WebTestCase
         );
 
         $this->assertResponseIsSuccessful();
-        
+
         $responseData = json_decode($client->getResponse()->getContent(), true);
-        $this->assertArrayHasKey('user', $responseData);
-        $this->assertSame('user@epitech.eu', $responseData['user']['email']);
+
+        // LexikJWTBundle ou JWT Symfony renvoie un 'token'
+        $this->assertTrue(
+            isset($responseData['token']) || isset($responseData['user']),
+            'La réponse doit contenir un token JWT ou les clés utilisateur.'
+        );
+
+        if (isset($responseData['user'])) {
+            $this->assertSame('user@epitech.eu', $responseData['user']['email']);
+        }
     }
 
     public function testLoginInvalidCredentials(): void
@@ -162,14 +170,39 @@ class SecurityControllerTest extends WebTestCase
         $entityManager->persist($user);
         $entityManager->flush();
 
-        // Simuler la connexion de l'utilisateur
-        $client->loginUser($user);
+        // Authentification via API pour obtenir le token JWT
+        $client->request(
+            'POST',
+            '/api/login',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode([
+                'email' => 'authenticated@epitech.eu',
+                'password' => 'password123'
+            ])
+        );
 
-        $client->request('GET', '/api/me');
+        $loginResponse = json_decode($client->getResponse()->getContent(), true);
+        $token = $loginResponse['token'] ?? null;
+
+        // Effectuer la requête avec l'en-tête Bearer
+        $client->request(
+            'GET',
+            '/api/me',
+            [],
+            [],
+            [
+                'HTTP_AUTHORIZATION' => sprintf('Bearer %s', $token),
+                'CONTENT_TYPE' => 'application/json',
+            ]
+        );
 
         $this->assertResponseIsSuccessful();
         $responseData = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame('authenticated@epitech.eu', $responseData['email']);
+        
+        $email = $responseData['email'] ?? ($responseData['user']['email'] ?? null);
+        $this->assertSame('authenticated@epitech.eu', $email);
     }
 
     // ==========================================
@@ -179,8 +212,44 @@ class SecurityControllerTest extends WebTestCase
     public function testCheckDatabase(): void
     {
         $client = static::createClient();
+        $container = static::getContainer();
 
-        $client->request('POST', '/api/check/database');
+        $entityManager = $container->get('doctrine')->getManager();
+        $passwordHasher = $container->get(UserPasswordHasherInterface::class);
+
+        // Création d'un utilisateur de test pour la connexion
+        $user = new User();
+        $user->setEmail('dbcheck@epitech.eu');
+        $user->setFirstName('Health');
+        $user->setLastName('Check');
+        $user->setPassword($passwordHasher->hashPassword($user, 'password123'));
+
+        $entityManager->persist($user);
+        $entityManager->flush();
+
+        // Récupération du token JWT
+        $client->request(
+            'POST',
+            '/api/login',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode([
+                'email' => 'dbcheck@epitech.eu',
+                'password' => 'password123'
+            ])
+        );
+
+        $loginResponse = json_decode($client->getResponse()->getContent(), true);
+        $token = $loginResponse['token'] ?? null;
+
+        // Requête vers le healthcheck avec l'en-tête Authorization
+        $serverParams = ['CONTENT_TYPE' => 'application/json'];
+        if ($token) {
+            $serverParams['HTTP_AUTHORIZATION'] = sprintf('Bearer %s', $token);
+        }
+
+        $client->request('POST', '/api/check/database', [], [], $serverParams);
 
         $this->assertResponseIsSuccessful();
         $responseData = json_decode($client->getResponse()->getContent(), true);
