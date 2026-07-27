@@ -27,13 +27,12 @@ class UserFavoriteControllerTest extends WebTestCase
 
     private function createTestData(): void
     {
-        // 1. Création de l'utilisateur de test avec TOUS ses champs obligatoires
+        // 1. Création de l'utilisateur de test avec ses champs obligatoires
         $user = new User();
         $user->setEmail('test_favorite_' . uniqid() . '@example.com');
         $user->setPassword(password_hash('password123', PASSWORD_BCRYPT));
         $user->setRoles(['ROLE_USER']);
 
-        // Correction pour la contrainte NOT NULL sur users.first_name / users.last_name
         if (method_exists($user, 'setFirstName')) {
             $user->setFirstName('John');
         }
@@ -43,12 +42,18 @@ class UserFavoriteControllerTest extends WebTestCase
 
         $this->entityManager->persist($user);
 
-        // 2. Création de l'offre de test
+        // 2. Création de l'offre de test avec tous ses champs obligatoires
         $offer = new Offers();
         $offer->setTitle('Développeur Symfony Test');
         $offer->setDescription('Description de test');
         
-        // Correction pour la contrainte NOT NULL sur offers.is_duplicate
+        // FIX : Ajout du champ obligatire 'kind'
+        if (method_exists($offer, 'setKind')) {
+            $offer->setKind('CDI');
+        } elseif (property_exists($offer, 'kind')) {
+            $offer->kind = 'CDI';
+        }
+
         if (method_exists($offer, 'setIsDuplicate')) {
             $offer->setIsDuplicate(false);
         } elseif (property_exists($offer, 'is_duplicate')) {
@@ -61,7 +66,7 @@ class UserFavoriteControllerTest extends WebTestCase
         $this->testUser = $user;
         $this->testOffer = $offer;
 
-        // 3. Récupération du token JWT
+        // 3. Authentification JWT
         $this->client->request(
             'POST',
             '/api/login_check',
