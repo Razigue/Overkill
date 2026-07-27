@@ -46,14 +46,27 @@ class UserFavoriteControllerTest extends WebTestCase
         $offer = new Offers();
         $offer->setTitle('Développeur Symfony Test');
         $offer->setDescription('Description de test');
-        
-        // FIX : Ajout du champ obligatire 'kind'
+
+        // Champ 'kind'
         if (method_exists($offer, 'setKind')) {
             $offer->setKind('CDI');
         } elseif (property_exists($offer, 'kind')) {
             $offer->kind = 'CDI';
         }
 
+        // FIX : Ajout du champ obligatoire 'published_at'
+        $nowImmutable = new \DateTimeImmutable();
+        if (method_exists($offer, 'setPublishedAt')) {
+            try {
+                $offer->setPublishedAt($nowImmutable);
+            } catch (\TypeError $e) {
+                $offer->setPublishedAt(new \DateTime());
+            }
+        } elseif (property_exists($offer, 'published_at')) {
+            $offer->published_at = $nowImmutable;
+        }
+
+        // Champ 'is_duplicate'
         if (method_exists($offer, 'setIsDuplicate')) {
             $offer->setIsDuplicate(false);
         } elseif (property_exists($offer, 'is_duplicate')) {
