@@ -47,14 +47,11 @@ class UserFavoriteControllerTest extends WebTestCase
         $offer->setTitle('Développeur Symfony Test');
         $offer->setDescription('Description de test');
 
-        // On remplit 'extracted_skills' / 'extractedSkills' via Setter ou Réflexion PHP
+        // Remplissage dynamique des compétences
         $skills = ['PHP', 'Symfony'];
         $skillsJson = json_encode($skills);
-
         $reflection = new \ReflectionClass(Offers::class);
 
-        // On recherche les méthodes de type set*Skill* ou setExtracted*
-        $methods = $reflection->getMethods();
         $skillSetters = ['setExtractedSkills', 'setExtractedSkill', 'setSkills', 'setSkill'];
         $setterCalled = false;
 
@@ -70,13 +67,11 @@ class UserFavoriteControllerTest extends WebTestCase
                         $setterCalled = true;
                         break;
                     } catch (\Throwable $e2) {
-                        // Continue d'essayer d'autres setters
                     }
                 }
             }
         }
 
-        // Si aucun setter n'a fonctionné, on force la valeur directement sur la propriété via réflexion
         if (!$setterCalled) {
             foreach ($reflection->getProperties() as $property) {
                 $pName = strtolower($property->getName());
@@ -87,6 +82,25 @@ class UserFavoriteControllerTest extends WebTestCase
                     } catch (\Throwable $e) {
                         $property->setValue($offer, $skillsJson);
                     }
+                }
+            }
+        }
+
+        // Remplissage spécifique pour external_url / url
+        if (method_exists($offer, 'setExternalUrl')) {
+            $offer->setExternalUrl('https://example.com/job/1');
+        }
+        if (method_exists($offer, 'setUrl')) {
+            $offer->setUrl('https://example.com/job/1');
+        }
+
+        // Sécurité par réflexion pour 'external_url' ou 'url'
+        foreach ($reflection->getProperties() as $property) {
+            $pName = strtolower($property->getName());
+            if (str_contains($pName, 'url')) {
+                $property->setAccessible(true);
+                if ($property->getValue($offer) === null) {
+                    $property->setValue($offer, 'https://example.com/job/1');
                 }
             }
         }
@@ -105,9 +119,6 @@ class UserFavoriteControllerTest extends WebTestCase
         }
         if (method_exists($offer, 'setLocation')) {
             $offer->setLocation('Paris');
-        }
-        if (method_exists($offer, 'setUrl')) {
-            $offer->setUrl('https://example.com/job/1');
         }
 
         // Champ 'published_at'
