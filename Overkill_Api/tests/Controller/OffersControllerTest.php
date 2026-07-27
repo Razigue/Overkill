@@ -46,7 +46,7 @@ class OffersControllerTest extends WebTestCase
 
     /**
      * Helper pour préparer la base de données avec des entités de dépendance (Company, Source, Category)
-     * On génère un nom unique à chaque appel pour éviter la contrainte UNIQUE SQL.
+     * On génère un nom unique à chaque appel pour éviter les contraintes UNIQUE SQL.
      */
     private function createDependencies(): array
     {
@@ -112,14 +112,14 @@ class OffersControllerTest extends WebTestCase
 
         $payload = [
             'title' => 'Développeur PHP / Symfony',
-            'kind' => 'Job',
+            'kind' => 'job', // Minuscule attendue ("job", "internship", "apprenticeship")
             'description' => 'Un super poste de dev Symfony.',
             'company_id' => $company->getId(),
             'source_id' => $source->getId(),
             'category_id' => [$category->getId()],
             'city' => 'Paris',
-            'country' => 'France',
-            'isRemote' => ['full'], // Attendu sous forme de tableau d'après le DTO OfferInput
+            'country' => 'FR', // Code ISO à 2 lettres
+            'isRemote' => ['full'], // Format tableau attendu
             'salaryMin' => 45000,
             'salaryMax' => 55000,
             'salaryCurrency' => 'EUR',
@@ -154,13 +154,13 @@ class OffersControllerTest extends WebTestCase
 
         $payload = [
             'title' => 'Poste sans entreprise valide',
-            'kind' => 'Job',
+            'kind' => 'job',
             'description' => 'Description',
             'company_id' => 999999, // ID inexistant
             'source_id' => $source->getId(),
             'category_id' => [$category->getId()],
             'city' => 'Paris',
-            'country' => 'France',
+            'country' => 'FR',
             'isRemote' => null,
             'salaryMin' => 30000,
             'salaryMax' => null,
@@ -207,13 +207,13 @@ class OffersControllerTest extends WebTestCase
 
         $offer = new Offers();
         $offer->setTitle('Offre de test ID');
-        $offer->setKind('Job');
+        $offer->setKind('job');
         $offer->setDescription('Description test');
         $offer->setCompanyId($company);
         $offer->setSourceId($source);
         $offer->addCategoryId($category);
         $offer->setCity('Lyon');
-        $offer->setCountry('France');
+        $offer->setCountry('FR');
         $offer->setIsRemote(['full']);
         $offer->setPublishedAt(new \DateTimeImmutable());
         $offer->setStartsAt(new \DateTimeImmutable());
@@ -252,13 +252,13 @@ class OffersControllerTest extends WebTestCase
 
         $offer = new Offers();
         $offer->setTitle('Offre à supprimer');
-        $offer->setKind('Job');
+        $offer->setKind('job');
         $offer->setDescription('Description à supprimer');
         $offer->setCompanyId($company);
         $offer->setSourceId($source);
         $offer->addCategoryId($category);
         $offer->setCity('Lille');
-        $offer->setCountry('France');
+        $offer->setCountry('FR');
         $offer->setIsRemote(null);
         $offer->setPublishedAt(new \DateTimeImmutable());
         $offer->setStartsAt(new \DateTimeImmutable());
