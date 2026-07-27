@@ -51,7 +51,7 @@ function Header({ user, onLogin, onRegister, onLogout }) {
                   <button
                       type="button"
                       onClick={onLogout}
-                      className="rounded-md border-2 border-black bg-black px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-md"
+                      className="rounded-md border-2 border-black bg-[#d2915c] px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-md"
                   >
                     Déconnexion
                   </button>
@@ -62,14 +62,14 @@ function Header({ user, onLogin, onRegister, onLogout }) {
                   <button
                       type="button"
                       onClick={onLogin}
-                      className="rounded-md border-2 border-black bg-white px-4 py-2 text-sm font-semibold text-black transition hover:-translate-y-0.5 hover:shadow-md"
+                      className="cursor-pointer rounded-md border-2 border-black bg-white px-4 py-2 text-sm font-semibold text-black transition hover:-translate-y-0.5 hover:shadow-md"
                   >
                     Se connecter
                   </button>
                   <button
                       type="button"
                       onClick={onRegister}
-                      className="rounded-md border-2 border-black bg-[#d2915c] px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-md"
+                      className="cursor-pointer rounded-md border-2 border-black bg-[#d2915c] px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-md"
                   >
                     S'inscrire
                   </button>

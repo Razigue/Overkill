@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import eyeIcon from '../assets/icons/eye.svg'
 import eyeOffIcon from '../assets/icons/eye-off.svg'
 
-function AuthOverlay({ mode, onClose, onAuthenticated }) {
+function AuthOverlay({ mode, onClose, onAuthenticated, onSwitchMode, onNotify }) {
   const [isClosing, setIsClosing] = useState(false)
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
@@ -14,10 +14,12 @@ function AuthOverlay({ mode, onClose, onAuthenticated }) {
   const [isLoginPasswordVisible, setIsLoginPasswordVisible] = useState(false)
   const [isRegisterPasswordVisible, setIsRegisterPasswordVisible] = useState(false)
   const [isRegisterPasswordConfirmationVisible, setIsRegisterPasswordConfirmationVisible] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  useEffect(() => {
-    setIsClosing(false)
-  }, [mode])
+  const close = useCallback(() => {
+    setIsClosing(true)
+    window.setTimeout(onClose, 220)
+  }, [onClose])
 
   useEffect(() => {
     if (!mode) return undefined
@@ -28,15 +30,12 @@ function AuthOverlay({ mode, onClose, onAuthenticated }) {
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [mode])
-
-  const close = () => {
-    setIsClosing(true)
-    window.setTimeout(onClose, 220)
-  }
+  }, [close, mode])
 
   const handleLoginSubmit = async (event) => {
     event.preventDefault()
+    if (isSubmitting) return
+    setIsSubmitting(true)
 
     try {
       const response = await fetch('http://localhost:8000/api/login', {
@@ -44,68 +43,81 @@ function AuthOverlay({ mode, onClose, onAuthenticated }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: loginEmail, password: loginPassword }),
       })
-      const data = await response.json()
+      const data = await response.json().catch(() => ({}))
 
       if (!response.ok) {
-        alert(data.message || 'Identifiants ou mot de passe incorrects.')
+        onNotify({ type: 'error', message: 'Adresse e-mail ou mot de passe incorrect. Vérifiez vos informations puis réessayez.' })
         return
       }
 
-      if (data.token) {
-        localStorage.setItem('token', data.token)
-        const profileResponse = await fetch('http://localhost:8000/api/me', {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${data.token}`,
-            'Content-Type': 'application/json',
-          },
-        })
-
-        if (profileResponse.ok) {
-          const userData = await profileResponse.json()
-          localStorage.setItem('user', JSON.stringify(userData))
-          onAuthenticated(userData)
-        }
+      if (!data.token) {
+        onNotify({ type: 'error', message: 'La connexion n’a pas pu être finalisée. Réessayez.' })
+        return
       }
 
+      localStorage.setItem('token', data.token)
+      const profileResponse = await fetch('http://localhost:8000/api/me', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${data.token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!profileResponse.ok) {
+        localStorage.removeItem('token')
+        onNotify({ type: 'error', message: 'Impossible de charger votre profil. Réessayez.' })
+        return
+      }
+
+      const userData = await profileResponse.json()
+      localStorage.setItem('user', JSON.stringify(userData))
+      onAuthenticated(userData)
+      onNotify({ type: 'success', message: `Bon retour ${userData.firstname ? `${userData.firstname}` : ''} !` })
       close()
-    } catch (error) {
-      console.error('Erreur API :', error)
-      alert('Impossible de contacter le serveur.')
+    } catch {
+      onNotify({ type: 'error', message: 'Impossible de contacter le serveur. Vérifiez votre connexion puis réessayez.' })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   const handleRegisterSubmit = async (event) => {
     event.preventDefault()
 
+    if (isSubmitting) return
+
     if (password !== passwordConfirmation) {
-      alert('Les mots de passe ne correspondent pas.')
+      onNotify({ type: 'error', message: 'Les mots de passe ne correspondent pas.' })
       return
     }
 
+    setIsSubmitting(true)
     try {
       const response = await fetch('http://localhost:8000/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ firstName, lastName, email, password }),
       })
-      const data = await response.json()
+      const data = await response.json().catch(() => ({}))
 
       if (!response.ok) {
-        alert(data.error || 'Une erreur est survenue.')
+        onNotify({ type: 'error', message: data.error || 'Une erreur est survenue.' })
         return
       }
 
-      alert('Inscription réussie, vous pouvez maintenant vous connecter.')
+      setLoginEmail(email)
       setFirstName('')
       setLastName('')
       setEmail('')
       setPassword('')
       setPasswordConfirmation('')
-      close()
-    } catch (error) {
-      console.error('Erreur API :', error)
-      alert('Impossible de contacter le serveur.')
+      onSwitchMode('login')
+      onNotify({ type: 'success', message: 'Inscription validée. Connectez-vous pour continuer.' })
+    } catch {
+      onNotify({ type: 'error', message: 'Impossible de contacter le serveur. Vérifiez votre connexion puis réessayez.' })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -146,7 +158,7 @@ function AuthOverlay({ mode, onClose, onAuthenticated }) {
               <input type="email" value={loginEmail} onChange={(event) => setLoginEmail(event.target.value)} required autoComplete="email" placeholder="ton@email.com" className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
             </label>
             <PasswordField label="Mot de passe" value={loginPassword} onChange={setLoginPassword} visible={isLoginPasswordVisible} onToggle={() => setIsLoginPasswordVisible((visible) => !visible)} autoComplete="current-password" placeholder="••••••••" />
-            <button type="submit" className="mt-6 w-full rounded-xl bg-black px-4 py-3 text-sm font-bold text-white transition hover:bg-[#d2915c]">Connexion</button>
+            <button type="submit" disabled={isSubmitting} className="mt-6 w-full rounded-xl bg-black px-4 py-3 text-sm font-bold text-white transition hover:bg-[#d2915c] disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting ? 'Connexion…' : 'Connexion'}</button>
           </>
         ) : (
           <>
@@ -157,7 +169,7 @@ function AuthOverlay({ mode, onClose, onAuthenticated }) {
             <label className="mt-4 block"><span className="mb-2 block text-sm font-semibold text-gray-700">Adresse e-mail</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required autoComplete="email" placeholder="ton@email.com" className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" /></label>
             <PasswordField label="Mot de passe" value={password} onChange={setPassword} visible={isRegisterPasswordVisible} onToggle={() => setIsRegisterPasswordVisible((visible) => !visible)} autoComplete="new-password" placeholder="8 caractères minimum" minLength="8" />
             <PasswordField label="Confirmer le mot de passe" value={passwordConfirmation} onChange={setPasswordConfirmation} visible={isRegisterPasswordConfirmationVisible} onToggle={() => setIsRegisterPasswordConfirmationVisible((visible) => !visible)} autoComplete="new-password" placeholder="Répète ton mot de passe" minLength="8" />
-            <button type="submit" className="mt-6 w-full rounded-xl bg-[#d2915c] px-4 py-3 text-sm font-bold text-white transition hover:bg-black">Créer mon compte</button>
+            <button type="submit" disabled={isSubmitting} className="mt-6 w-full rounded-xl bg-[#d2915c] px-4 py-3 text-sm font-bold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting ? 'Création…' : 'Créer mon compte'}</button>
           </>
         )}
       </form>
