@@ -13,6 +13,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 class OffersControllerTest extends WebTestCase
 {
     private ?KernelBrowser $client = null;
+    private ?User $testUser = null;
 
     protected function setUp(): void
     {
@@ -23,25 +24,35 @@ class OffersControllerTest extends WebTestCase
         $container = static::getContainer();
         $em = $container->get('doctrine')->getManager();
 
-        $user = new User();
-        $user->setEmail('test_offers_' . uniqid() . '@example.com');
-        $user->setPassword('password123');
+        $this->testUser = new User();
+        $this->testUser->setEmail('test_offers_' . uniqid() . '@example.com');
+        $this->testUser->setPassword('password123');
 
-        if (method_exists($user, 'setFirstName')) {
-            $user->setFirstName('Test');
+        if (method_exists($this->testUser, 'setFirstName')) {
+            $this->testUser->setFirstName('Test');
         }
-        if (method_exists($user, 'setLastName')) {
-            $user->setLastName('User');
+        if (method_exists($this->testUser, 'setLastName')) {
+            $this->testUser->setLastName('User');
         }
-        if (method_exists($user, 'setRoles')) {
-            $user->setRoles(['ROLE_USER']);
+        if (method_exists($this->testUser, 'setRoles')) {
+            $this->testUser->setRoles(['ROLE_USER']);
         }
 
-        $em->persist($user);
+        $em->persist($this->testUser);
         $em->flush();
 
         // Connecte l'utilisateur pour les requêtes HTTP simulées
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->testUser);
+    }
+
+    /**
+     * Helper pour ré-authentifier si nécessaire lors de requêtes successives
+     */
+    private function authenticateClient(): void
+    {
+        if ($this->client && $this->testUser) {
+            $this->client->loginUser($this->testUser);
+        }
     }
 
     /**
@@ -148,16 +159,7 @@ class OffersControllerTest extends WebTestCase
         // Extraire la structure principale
         $offerData = $responseData['offer'] ?? $responseData['data'] ?? $responseData;
 
-        // Détection flexible de la clé d'identifiant
-        $idKey = null;
-        foreach (['id', 'offerId', 'offer_id', 'id_offer'] as $possibleKey) {
-            if (array_key_exists($possibleKey, $offerData)) {
-                $idKey = $possibleKey;
-                break;
-            }
-        }
-
-        // Si la réponse est un succès 201, vérifier la présence du titre
+        // Vérifier la présence du titre
         $title = $offerData['title'] ?? null;
         $this->assertSame('Développeur PHP / Symfony', $title);
     }
@@ -224,7 +226,7 @@ class OffersControllerTest extends WebTestCase
         $offer->setKind('job');
         $offer->setContract('CDI');
         $offer->setExtractedSkills(['PHP', 'Symfony']);
-        $offer->setExternalUrl('https://epitech.eu/jobs/test-' . uniqid()); // Champ obligatoire
+        $offer->setExternalUrl('https://epitech.eu/jobs/test-' . uniqid());
         $offer->setDescription('Description test');
         $offer->setCompanyId($company);
         $offer->setSourceId($source);
@@ -273,7 +275,7 @@ class OffersControllerTest extends WebTestCase
         $offer->setKind('job');
         $offer->setContract('CDI');
         $offer->setExtractedSkills(['PHP', 'Symfony']);
-        $offer->setExternalUrl('https://epitech.eu/jobs/delete-' . uniqid()); // Champ obligatoire
+        $offer->setExternalUrl('https://epitech.eu/jobs/delete-' . uniqid());
         $offer->setDescription('Description à supprimer');
         $offer->setCompanyId($company);
         $offer->setSourceId($source);
@@ -293,11 +295,14 @@ class OffersControllerTest extends WebTestCase
 
         $offerId = $offer->getId();
 
+        // 1ère requête : Suppression de l'offre
         $this->client->request('DELETE', '/api/offers/' . $offerId);
-
         $this->assertResponseStatusCodeSame(204);
 
-        // Vérification que l'offre n'existe plus
+        // Ré-authentification du client avant la 2nde requête HTTP
+        $this->authenticateClient();
+
+        // 2ème requête : Vérification que l'offre est bien supprimée (404)
         $this->client->request('GET', '/api/offers/' . $offerId);
         $this->assertResponseStatusCodeSame(404);
     }
