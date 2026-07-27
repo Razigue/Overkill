@@ -22,11 +22,11 @@ class UserFavoriteControllerTest extends WebTestCase
     }
 
     /**
-     * Helper pour instancier l'offre d'emploi avec créée_at renseigné
+     * Helper pour instancier l'offre d'emploi avec created_at renseigné
      */
-    private function createTestOffer(string $title = 'Test Offer'): JobOffer
+    private function createTestOffer(string $title = 'Test Offer'): Offers
     {
-        $offer = new JobOffer();
+        $offer = new Offers();
         $offer->setTitle($title);
 
         // Assure que created_at n'est pas null
