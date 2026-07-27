@@ -86,11 +86,12 @@ jobs:
             echo "JWT_PASSPHRASE=jwt_test_passphrase" >> .env
           fi
 
-      # Réinitialiser proprement la base de données
+      # Réinitialiser la base de données et charger les Fixtures de test
       - name: Prepare Database for Tests
         working-directory: ./Overkill_Api
         run: |
           php bin/console doctrine:schema:update --force --env=test
+          php bin/console doctrine:fixtures:load --no-interaction --env=test || true
 
       # Exécuter PHPUnit
       - name: Run Backend Tests
