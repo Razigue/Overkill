@@ -29,7 +29,6 @@ class UserFavoriteControllerTest extends WebTestCase
         $offer = new Offers();
         $offer->setTitle($title);
 
-        // Assure que created_at n'est pas null
         if (method_exists($offer, 'setCreatedAt')) {
             $offer->setCreatedAt(new \DateTimeImmutable());
         }
@@ -37,11 +36,23 @@ class UserFavoriteControllerTest extends WebTestCase
         return $offer;
     }
 
+    /**
+     * Helper pour instancier un utilisateur de test complet
+     */
     private function createTestUser(string $email = 'user@example.com'): User
     {
         $user = new User();
         $user->setEmail($email);
         $user->setPassword('password123');
+
+        // Renseignement des champs obligatoires (NOT NULL)
+        if (method_exists($user, 'setFirstName')) {
+            $user->setFirstName('John');
+        }
+
+        if (method_exists($user, 'setLastName')) {
+            $user->setLastName('Doe');
+        }
 
         return $user;
     }
