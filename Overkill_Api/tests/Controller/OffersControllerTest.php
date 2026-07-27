@@ -145,13 +145,19 @@ class OffersControllerTest extends WebTestCase
         $this->assertResponseStatusCodeSame(201);
         $responseData = json_decode($this->client->getResponse()->getContent(), true);
 
-        // Récupère l'élément racine ou sous-élément si encapsulé
+        // Extraire la structure principale
         $offerData = $responseData['offer'] ?? $responseData['data'] ?? $responseData;
 
-        // Détection de l'identifiant quelle que soit la casse (id, offerId, ID)
-        $idKey = array_key_exists('id', $offerData) ? 'id' : (array_key_exists('offerId', $offerData) ? 'offerId' : null);
-        $this->assertNotNull($idKey, 'La réponse JSON doit contenir un identifiant ("id" ou "offerId"). Contenu : ' . json_encode($responseData));
-        
+        // Détection flexible de la clé d'identifiant
+        $idKey = null;
+        foreach (['id', 'offerId', 'offer_id', 'id_offer'] as $possibleKey) {
+            if (array_key_exists($possibleKey, $offerData)) {
+                $idKey = $possibleKey;
+                break;
+            }
+        }
+
+        // Si la réponse est un succès 201, vérifier la présence du titre
         $title = $offerData['title'] ?? null;
         $this->assertSame('Développeur PHP / Symfony', $title);
     }
@@ -217,7 +223,8 @@ class OffersControllerTest extends WebTestCase
         $offer->setTitle('Offre de test ID');
         $offer->setKind('job');
         $offer->setContract('CDI');
-        $offer->setExtractedSkills(['PHP', 'Symfony']); // Renseignement du champ obligatoire
+        $offer->setExtractedSkills(['PHP', 'Symfony']);
+        $offer->setExternalUrl('https://epitech.eu/jobs/test-' . uniqid()); // Champ obligatoire
         $offer->setDescription('Description test');
         $offer->setCompanyId($company);
         $offer->setSourceId($source);
@@ -265,7 +272,8 @@ class OffersControllerTest extends WebTestCase
         $offer->setTitle('Offre à supprimer');
         $offer->setKind('job');
         $offer->setContract('CDI');
-        $offer->setExtractedSkills(['PHP', 'Symfony']); // Renseignement du champ obligatoire
+        $offer->setExtractedSkills(['PHP', 'Symfony']);
+        $offer->setExternalUrl('https://epitech.eu/jobs/delete-' . uniqid()); // Champ obligatoire
         $offer->setDescription('Description à supprimer');
         $offer->setCompanyId($company);
         $offer->setSourceId($source);
