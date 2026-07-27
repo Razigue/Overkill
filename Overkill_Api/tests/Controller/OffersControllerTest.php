@@ -9,7 +9,6 @@ use App\Entity\Sources;
 use App\Entity\User;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class OffersControllerTest extends WebTestCase
 {
@@ -19,6 +18,23 @@ class OffersControllerTest extends WebTestCase
     {
         parent::setUp();
         $this->client = static::createClient();
+
+        // 1. Création et authentification d'un utilisateur de test pour passer la sécurité JWT
+        $container = static::getContainer();
+        $em = $container->get('doctrine')->getManager();
+
+        $user = new User();
+        $user->setEmail('test_offers_' . uniqid() . '@example.com');
+        $user->setPassword('password123');
+        if (method_exists($user, 'setRoles')) {
+            $user->setRoles(['ROLE_USER']);
+        }
+
+        $em->persist($user);
+        $em->flush();
+
+        // Connecte l'utilisateur pour les requêtes HTTP simulées
+        $this->client->loginUser($user);
     }
 
     /**
@@ -38,6 +54,13 @@ class OffersControllerTest extends WebTestCase
         $source = new Sources();
         if (method_exists($source, 'setName')) {
             $source->setName('Internal Portal');
+        }
+        // Correction : Définition des champs obligatoires (NOT NULL constraint failed: sources.base_url)
+        if (method_exists($source, 'setBaseUrl')) {
+            $source->setBaseUrl('https://example.com');
+        }
+        if (method_exists($source, 'setCode')) {
+            $source->setCode('INTERNAL');
         }
         $em->persist($source);
 
