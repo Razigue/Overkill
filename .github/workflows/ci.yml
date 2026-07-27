@@ -36,8 +36,8 @@ jobs:
     runs-on: self-hosted 
     env:
       APP_ENV: test # Force Symfony à utiliser la configuration de test (.env.test)
-      # On force Doctrine à utiliser SQLite en local pour les tests
       DATABASE_URL: "sqlite:///%kernel.project_dir%/var/data.db"
+      DEFAULT_URI: "http://localhost" # Variable requise par le Router Symfony
     steps:
       - uses: actions/checkout@v4
 
