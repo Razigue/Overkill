@@ -35,9 +35,12 @@ jobs:
     needs: secrets-scan
     runs-on: self-hosted 
     env:
-      APP_ENV: test # Force Symfony à utiliser la configuration de test (.env.test)
+      APP_ENV: test
+      APP_SECRET: "ceci_est_un_secret_de_test_12345"
       DATABASE_URL: "sqlite:///%kernel.project_dir%/var/data.db"
-      DEFAULT_URI: "http://localhost" # Variable requise par le Router Symfony
+      DEFAULT_URI: "http://localhost"
+      MESSENGER_TRANSPORT_DSN: "in-memory://"
+      MAILER_DSN: "null://null"
     steps:
       - uses: actions/checkout@v4
 
@@ -54,14 +57,19 @@ jobs:
         working-directory: ./Overkill_Api
         run: composer install --no-progress --prefer-dist --no-scripts
 
-      # S'assurer que le composant Symfony Dotenv trouve un fichier .env (s'il n'y a pas de .env.test)
-      - name: Ensure .env file exists
+      # S'assurer que .env existe et contient les fallback d'environnement
+      - name: Ensure .env file exists with defaults
         working-directory: ./Overkill_Api
         run: |
           if [ -f .env.test ]; then
             cp .env.test .env
           else
-            touch .env
+            echo "APP_ENV=test" > .env
+            echo "APP_SECRET=ceci_est_un_secret_de_test_12345" >> .env
+            echo "DATABASE_URL=sqlite:///%kernel.project_dir%/var/data.db" >> .env
+            echo "DEFAULT_URI=http://localhost" >> .env
+            echo "MESSENGER_TRANSPORT_DSN=in-memory://" >> .env
+            echo "MAILER_DSN=null://null" >> .env
           fi
 
       # Réinitialiser proprement la base de données en ciblant Overkill_Api
