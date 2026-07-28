@@ -9,180 +9,118 @@ use App\Entity\UserFavorites;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 
 class UserFavoriteControllerTest extends WebTestCase
 {
     private KernelBrowser $client;
     private EntityManagerInterface $entityManager;
-    private User $user;
-    private Offers $offer;
+    private JWTTokenManagerInterface $jwtManager;
 
     protected function setUp(): void
     {
         $this->client = static::createClient();
         $this->entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $this->jwtManager = static::getContainer()->get(JWTTokenManagerInterface::class);
 
-        // Nettoyage de la base de données dans l'ordre (contraintes FK)
+        // Nettoyage de la base de données avant chaque test
         $this->entityManager->createQuery('DELETE FROM App\Entity\UserFavorites')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\Offers')->execute();
-
-        if (class_exists('App\Entity\Company')) {
-            $this->entityManager->createQuery('DELETE FROM App\Entity\Company')->execute();
-        }
-
+        $this->entityManager->createQuery('DELETE FROM App\Entity\Company')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\User')->execute();
+    }
 
-        // 1. Création de l'utilisateur de test
-        $this->user = new User();
-        $this->user->setEmail('test_favorite_' . uniqid() . '@example.com');
-        $this->user->setPassword('password123');
-        $this->user->setRoles(['ROLE_USER']);
+    private function createTestUser(string $email = 'user@test.com'): User
+    {
+        $user = new User();
+        $user->setEmail($email);
+        $user->setPassword(password_hash('password123', PASSWORD_BCRYPT));
+        $user->setRoles(['ROLE_USER']);
+        $user->setName('John');
+        $user->setLastName('Doe');
 
-        if (method_exists($this->user, 'setFirstName')) {
-            $this->user->setFirstName('Test');
-        }
-        if (method_exists($this->user, 'setLastName')) {
-            $this->user->setLastName('User');
-        }
-
-        $this->entityManager->persist($this->user);
-
-        // 2. Création de l'entreprise (requise par la relation ManyToOne sur Offers)
-        $companyEntity = null;
-        if (class_exists('App\Entity\Company')) {
-            $companyEntity = new Company();
-            if (method_exists($companyEntity, 'setName')) {
-                $companyEntity->setName('Test Company');
-            }
-            if (method_exists($companyEntity, 'setExternalId')) {
-                $companyEntity->setExternalId('COMP-12345');
-            }
-            $this->entityManager->persist($companyEntity);
-        }
-
-        // 3. Création de l'offre de test
-        $this->offer = new Offers();
-
-        // Association de la relation Company
-        if ($companyEntity !== null) {
-            if (method_exists($this->offer, 'setCompanyId')) {
-                $this->offer->setCompanyId($companyEntity);
-            } elseif (method_exists($this->offer, 'setCompany')) {
-                $this->offer->setCompany($companyEntity);
-            }
-        }
-
-        // Compteurs et booléens obligatoires
-        if (method_exists($this->offer, 'setIsDuplicate')) {
-            $this->offer->setIsDuplicate(false);
-        } elseif (method_exists($this->offer, 'setDuplicate')) {
-            $this->offer->setDuplicate(false);
-        }
-
-        if (method_exists($this->offer, 'setViewsCount')) {
-            $this->offer->setViewsCount(0);
-        } elseif (method_exists($this->offer, 'setViews')) {
-            $this->offer->setViews(0);
-        }
-
-        if (method_exists($this->offer, 'setSalary')) {
-            $this->offer->setSalary(45000);
-        }
-
-        // Champs textes de base
-        if (method_exists($this->offer, 'setTitle')) {
-            $this->offer->setTitle('Test Job Offer');
-        }
-        if (method_exists($this->offer, 'setDescription')) {
-            $this->offer->setDescription('Test Description');
-        }
-        if (method_exists($this->offer, 'setKind')) {
-            $this->offer->setKind('job');
-        }
-        if (method_exists($this->offer, 'setContract')) {
-            $this->offer->setContract('CDI');
-        }
-        if (method_exists($this->offer, 'setLocation')) {
-            $this->offer->setLocation('Paris');
-        }
-
-        // Identifiants & URLs externes
-        if (method_exists($this->offer, 'setExternalUrl')) {
-            $this->offer->setExternalUrl('https://example.com/job/123');
-        }
-        if (method_exists($this->offer, 'setExternalId')) {
-            $this->offer->setExternalId('EXT-12345');
-        }
-        if (method_exists($this->offer, 'setSource')) {
-            $this->offer->setSource('Indeed');
-        }
-        if (method_exists($this->offer, 'setUrl')) {
-            $this->offer->setUrl('https://example.com/job/123');
-        }
-
-        // Tableaux / JSON
-        if (method_exists($this->offer, 'setExtractedSkills')) {
-            $this->offer->setExtractedSkills(['PHP', 'Symfony']);
-        }
-        if (method_exists($this->offer, 'setSkills')) {
-            $this->offer->setSkills(['PHP', 'Symfony']);
-        }
-
-        // Dates
-        $now = new \DateTimeImmutable();
-        if (method_exists($this->offer, 'setPublishedAt')) {
-            $this->offer->setPublishedAt($now);
-        }
-        if (method_exists($this->offer, 'setStartsAt')) {
-            $this->offer->setStartsAt($now);
-        }
-        if (method_exists($this->offer, 'setCreatedAt')) {
-            $this->offer->setCreatedAt($now);
-        }
-        if (method_exists($this->offer, 'setUpdatedAt')) {
-            $this->offer->setUpdatedAt($now);
-        }
-
-        $this->entityManager->persist($this->offer);
+        $this->entityManager->persist($user);
         $this->entityManager->flush();
+
+        return $user;
+    }
+
+    private function createTestCompany(): Company
+    {
+        $company = new Company();
+        $company->setName('Test Enterprise');
+
+        $this->entityManager->persist($company);
+        $this->entityManager->flush();
+
+        return $company;
+    }
+
+    private function createTestOffer(): Offers
+    {
+        // 1. On crée d'abord l'entreprise obligatoire pour l'offre
+        $company = $this->createTestCompany();
+
+        // 2. On instancie l'offre et on lui associe l'entreprise créée
+        $offer = new Offers();
+        $offer->setTitle('Développeur PHP / Symfony');
+        $offer->setDescription('Une super offre de test.');
+        $offer->setCompanyId($company); // <-- Résout la contrainte NOT NULL de company_id_id
+        $offer->setCreatedAt(new \DateTimeImmutable());
+
+        $this->entityManager->persist($offer);
+        $this->entityManager->flush();
+
+        return $offer;
+    }
+
+    private function generateAuthHeader(User $user): array
+    {
+        $token = $this->jwtManager->create($user);
+
+        return [
+            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
+            'CONTENT_TYPE' => 'application/json',
+        ];
     }
 
     public function testGetUserFavoritesList(): void
     {
-        $this->client->loginUser($this->user);
+        $user = $this->createTestUser();
+        $offer = $this->createTestOffer();
 
         $favorite = new UserFavorites();
-        $favorite->setUserId($this->user);
-        $favorite->setOfferId($this->offer);
-        if (method_exists($favorite, 'setCreatedAt')) {
-            $favorite->setCreatedAt(new \DateTimeImmutable());
-        }
+        $favorite->setUserId($user);
+        $favorite->setOfferId($offer);
+        $favorite->setCreatedAt(new \DateTimeImmutable());
+
         $this->entityManager->persist($favorite);
         $this->entityManager->flush();
 
-        // Route mise à jour : /api/userfav
-        $this->client->request('GET', '/api/userfav');
+        $headers = $this->generateAuthHeader($user);
+        $this->client->request('GET', '/api/favorites', [], [], $headers);
 
         $this->assertResponseIsSuccessful();
         $this->assertResponseHeaderSame('content-type', 'application/json');
 
         $responseData = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertIsArray($responseData);
+        $this->assertNotEmpty($responseData);
     }
 
     public function testPostUserFavoriteSuccess(): void
     {
-        $this->client->loginUser($this->user);
+        $user = $this->createTestUser();
+        $offer = $this->createTestOffer();
 
-        // Route mise à jour : /api/userfav
-        // Body mis à jour : offer_id (au lieu de offerId)
+        $headers = $this->generateAuthHeader($user);
         $this->client->request(
             'POST',
-            '/api/userfav',
+            '/api/favorites',
             [],
             [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['offer_id' => $this->offer->getId()])
+            $headers,
+            json_encode(['offer_id' => $offer->getId()])
         );
 
         $this->assertResponseStatusCodeSame(201);
@@ -190,52 +128,52 @@ class UserFavoriteControllerTest extends WebTestCase
 
     public function testPostUserFavoriteAlreadyExists(): void
     {
-        $this->client->loginUser($this->user);
+        $user = $this->createTestUser();
+        $offer = $this->createTestOffer();
 
         $favorite = new UserFavorites();
-        $favorite->setUserId($this->user);
-        $favorite->setOfferId($this->offer);
-        if (method_exists($favorite, 'setCreatedAt')) {
-            $favorite->setCreatedAt(new \DateTimeImmutable());
-        }
+        $favorite->setUserId($user);
+        $favorite->setOfferId($offer);
+        $favorite->setCreatedAt(new \DateTimeImmutable());
+
         $this->entityManager->persist($favorite);
         $this->entityManager->flush();
 
+        $headers = $this->generateAuthHeader($user);
         $this->client->request(
             'POST',
-            '/api/userfav',
+            '/api/favorites',
             [],
             [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['offer_id' => $this->offer->getId()])
+            $headers,
+            json_encode(['offer_id' => $offer->getId()])
         );
 
-        // Statut HTTP mis à jour dans le contrôleur : 409 CONFLICT
-        $this->assertResponseStatusCodeSame(409);
+        $this->assertResponseStatusCodeSame(400);
     }
 
     public function testDeleteUserFavoriteSuccess(): void
     {
-        $this->client->loginUser($this->user);
+        $user = $this->createTestUser();
+        $offer = $this->createTestOffer();
 
         $favorite = new UserFavorites();
-        $favorite->setUserId($this->user);
-        $favorite->setOfferId($this->offer);
-        if (method_exists($favorite, 'setCreatedAt')) {
-            $favorite->setCreatedAt(new \DateTimeImmutable());
-        }
+        $favorite->setUserId($user);
+        $favorite->setOfferId($offer);
+        $favorite->setCreatedAt(new \DateTimeImmutable());
+
         $this->entityManager->persist($favorite);
         $this->entityManager->flush();
 
-        // Le DELETE prend en paramètre l'ID du UserFavorites ($favorite->getId())
-        $this->client->request('DELETE', '/api/userfav/' . $favorite->getId());
+        $headers = $this->generateAuthHeader($user);
+        $this->client->request(
+            'DELETE',
+            '/api/favorites/' . $favorite->getId(),
+            [],
+            [],
+            $headers
+        );
 
         $this->assertResponseStatusCodeSame(204);
-    }
-
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-        $this->entityManager->close();
     }
 }
