@@ -23,7 +23,7 @@ class UserFavoriteControllerTest extends WebTestCase
         $this->entityManager = static::getContainer()->get(EntityManagerInterface::class);
         $this->jwtManager = static::getContainer()->get(JWTTokenManagerInterface::class);
 
-        // Nettoyage de la base de données avant chaque test
+        // Nettoyage de la base de données
         $this->entityManager->createQuery('DELETE FROM App\Entity\UserFavorites')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\Offers')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\Companies')->execute();
@@ -36,8 +36,6 @@ class UserFavoriteControllerTest extends WebTestCase
         $user->setEmail($email);
         $user->setPassword(password_hash('password123', PASSWORD_BCRYPT));
         $user->setRoles(['ROLE_USER']);
-        
-        // Utilisation des setters réels de l'entité User pour satisfaire les contraintes NOT NULL
         $user->setFirstName('John');
         $user->setLastName('Doe');
 
@@ -67,6 +65,11 @@ class UserFavoriteControllerTest extends WebTestCase
         $offer->setDescription('Une super offre de test.');
         $offer->setCompanyId($company);
         $offer->setCreatedAt(new \DateTimeImmutable());
+        
+        // Ajout du champ obligatoire 'kind' (ou le setter correspondant sur l'entité Offers)
+        if (method_exists($offer, 'setKind')) {
+            $offer->setKind('CDI');
+        }
 
         $this->entityManager->persist($offer);
         $this->entityManager->flush();
