@@ -66,7 +66,6 @@ class UserFavoriteControllerTest extends WebTestCase
             $source->setName('LinkedIn');
         }
 
-        // Renseigne le champ obligatoire base_url
         if (method_exists($source, 'setBaseUrl')) {
             $source->setBaseUrl('https://linkedin.com');
         } elseif (method_exists($source, 'setBase_url')) {
@@ -99,6 +98,21 @@ class UserFavoriteControllerTest extends WebTestCase
         $offer->setStartsAt($now);
         $offer->setCreatedAt($now);
         $offer->setUpdatedAt($now);
+
+        // Ajout du champ extracted_skills (supporte string, array ou setter avec underscore)
+        if (method_exists($offer, 'setExtractedSkills')) {
+            try {
+                $offer->setExtractedSkills(['PHP', 'Symfony']);
+            } catch (\TypeError $e) {
+                $offer->setExtractedSkills('PHP, Symfony');
+            }
+        } elseif (method_exists($offer, 'setExtracted_skills')) {
+            try {
+                $offer->setExtracted_skills(['PHP', 'Symfony']);
+            } catch (\TypeError $e) {
+                $offer->setExtracted_skills('PHP, Symfony');
+            }
+        }
 
         $this->entityManager->persist($offer);
         $this->entityManager->flush();
