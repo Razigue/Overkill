@@ -24,7 +24,7 @@ class UserFavoriteControllerTest extends WebTestCase
         $this->entityManager = static::getContainer()->get(EntityManagerInterface::class);
         $this->jwtManager = static::getContainer()->get(JWTTokenManagerInterface::class);
 
-        // Nettoyage complet dans l'ordre pour éviter les erreurs de clés étrangères
+        // Nettoyage complet
         $this->entityManager->createQuery('DELETE FROM App\Entity\UserFavorites')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\Offers')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\Sources')->execute();
@@ -61,9 +61,16 @@ class UserFavoriteControllerTest extends WebTestCase
     private function createTestSource(): Sources
     {
         $source = new Sources();
-        // Ajuste les setters ci-dessous si ton entité Sources a d'autres champs obligatoires
+        
         if (method_exists($source, 'setName')) {
             $source->setName('LinkedIn');
+        }
+
+        // Renseigne le champ obligatoire base_url
+        if (method_exists($source, 'setBaseUrl')) {
+            $source->setBaseUrl('https://linkedin.com');
+        } elseif (method_exists($source, 'setBase_url')) {
+            $source->setBase_url('https://linkedin.com');
         }
 
         $this->entityManager->persist($source);
