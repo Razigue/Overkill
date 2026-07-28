@@ -2,7 +2,7 @@
 
 namespace App\Tests\Controller;
 
-use App\Entity\Company;
+use App\Entity\Companies;
 use App\Entity\Offers;
 use App\Entity\User;
 use App\Entity\UserFavorites;
@@ -26,7 +26,7 @@ class UserFavoriteControllerTest extends WebTestCase
         // Nettoyage de la base de données avant chaque test
         $this->entityManager->createQuery('DELETE FROM App\Entity\UserFavorites')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\Offers')->execute();
-        $this->entityManager->createQuery('DELETE FROM App\Entity\Company')->execute();
+        $this->entityManager->createQuery('DELETE FROM App\Entity\Companies')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\User')->execute();
     }
 
@@ -45,9 +45,9 @@ class UserFavoriteControllerTest extends WebTestCase
         return $user;
     }
 
-    private function createTestCompany(): Company
+    private function createTestCompany(): Companies
     {
-        $company = new Company();
+        $company = new Companies();
         $company->setName('Test Enterprise');
 
         $this->entityManager->persist($company);
@@ -58,14 +58,14 @@ class UserFavoriteControllerTest extends WebTestCase
 
     private function createTestOffer(): Offers
     {
-        // 1. On crée d'abord l'entreprise obligatoire pour l'offre
+        // 1. Création de l'entreprise (Companies)
         $company = $this->createTestCompany();
 
-        // 2. On instancie l'offre et on lui associe l'entreprise créée
+        // 2. Association de l'entreprise à l'offre
         $offer = new Offers();
         $offer->setTitle('Développeur PHP / Symfony');
         $offer->setDescription('Une super offre de test.');
-        $offer->setCompanyId($company); // <-- Résout la contrainte NOT NULL de company_id_id
+        $offer->setCompanyId($company); // Associe l'entité Companies
         $offer->setCreatedAt(new \DateTimeImmutable());
 
         $this->entityManager->persist($offer);
