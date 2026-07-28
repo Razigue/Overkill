@@ -2,10 +2,9 @@
 
 namespace App\Entity;
 
-use App\Entity\Offers;
-use App\Entity\User;
 use App\Repository\UserFavoritesRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: UserFavoritesRepository::class)]
 class UserFavorites
@@ -15,73 +14,50 @@ class UserFavorites
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
-    private ?User $user_id = null;
+    private ?user $user_id = null;
 
-    #[ORM\ManyToOne(targetEntity: Offers::class)]
+    #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
-    private ?Offers $offer_id = null;
+    private ?offers $offer_id = null;
 
     #[ORM\Column]
     private ?\DateTimeImmutable $created_at = null;
 
-    public function __construct()
-    {
-        $this->created_at = new \DateTimeImmutable();
-    }
-
+    #[Groups('favorites:read')]
     public function getId(): ?int
     {
         return $this->id;
     }
 
-    public function getUserId(): ?User
+    public function getUserId(): ?user
     {
         return $this->user_id;
     }
 
-    public function setUserId(?User $user_id): static
+    public function setUserId(?user $user_id): static
     {
         $this->user_id = $user_id;
 
         return $this;
     }
 
-    // Alias pour compatibilité si votre code/test appelle setUser()
-    public function setUser(?User $user): static
-    {
-        return $this->setUserId($user);
-    }
 
-    public function getUser(): ?User
-    {
-        return $this->getUserId();
-    }
-
-    public function getOfferId(): ?Offers
+    #[Groups('favorites:read')]
+    public function getOfferId(): ?offers
     {
         return $this->offer_id;
     }
 
-    public function setOfferId(?Offers $offer_id): static
+    public function setOfferId(?offers $offer_id): static
     {
         $this->offer_id = $offer_id;
 
         return $this;
     }
 
-    // Alias pour compatibilité si votre code/test appelle setOffer()
-    public function setOffer(?Offers $offer): static
-    {
-        return $this->setOfferId($offer);
-    }
-
-    public function getOffer(): ?Offers
-    {
-        return $this->getOfferId();
-    }
-
+    #[Groups('favorites:read')]
     public function getCreatedAt(): ?\DateTimeImmutable
     {
         return $this->created_at;

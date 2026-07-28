@@ -22,7 +22,7 @@ class UserFavoriteControllerTest extends WebTestCase
         $this->client = static::createClient();
         $this->entityManager = static::getContainer()->get(EntityManagerInterface::class);
 
-        // Nettoyage de la base de données dans l'ordre pour respecter les contraintes de clés étrangères
+        // Nettoyage de la base de données dans l'ordre (contraintes FK)
         $this->entityManager->createQuery('DELETE FROM App\Entity\UserFavorites')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\Offers')->execute();
 
@@ -47,7 +47,7 @@ class UserFavoriteControllerTest extends WebTestCase
 
         $this->entityManager->persist($this->user);
 
-        // 2. Création de l'entreprise (requise par la relation ManyToOne non nulle sur Offers)
+        // 2. Création de l'entreprise (requise par la relation ManyToOne sur Offers)
         $companyEntity = null;
         if (class_exists('App\Entity\Company')) {
             $companyEntity = new Company();
@@ -72,14 +72,13 @@ class UserFavoriteControllerTest extends WebTestCase
             }
         }
 
-        // Champs booléens
+        // Compteurs et booléens obligatoires
         if (method_exists($this->offer, 'setIsDuplicate')) {
             $this->offer->setIsDuplicate(false);
         } elseif (method_exists($this->offer, 'setDuplicate')) {
             $this->offer->setDuplicate(false);
         }
 
-        // Champs numériques (compteurs & salaires)
         if (method_exists($this->offer, 'setViewsCount')) {
             $this->offer->setViewsCount(0);
         } elseif (method_exists($this->offer, 'setViews')) {
@@ -107,12 +106,7 @@ class UserFavoriteControllerTest extends WebTestCase
             $this->offer->setLocation('Paris');
         }
 
-        // Au cas où 'company' est une simple chaîne de caractères en plus de l'entité
-        if (method_exists($this->offer, 'setCompany') && $companyEntity === null) {
-            $this->offer->setCompany('Test Company Name');
-        }
-
-        // Champs externes & identifiants
+        // Identifiants & URLs externes
         if (method_exists($this->offer, 'setExternalUrl')) {
             $this->offer->setExternalUrl('https://example.com/job/123');
         }
@@ -126,7 +120,7 @@ class UserFavoriteControllerTest extends WebTestCase
             $this->offer->setUrl('https://example.com/job/123');
         }
 
-        // Champs de type Array / JSON
+        // Tableaux / JSON
         if (method_exists($this->offer, 'setExtractedSkills')) {
             $this->offer->setExtractedSkills(['PHP', 'Symfony']);
         }
@@ -134,7 +128,7 @@ class UserFavoriteControllerTest extends WebTestCase
             $this->offer->setSkills(['PHP', 'Symfony']);
         }
 
-        // Champs de type DateTime
+        // Dates
         $now = new \DateTimeImmutable();
         if (method_exists($this->offer, 'setPublishedAt')) {
             $this->offer->setPublishedAt($now);
@@ -160,10 +154,14 @@ class UserFavoriteControllerTest extends WebTestCase
         $favorite = new UserFavorites();
         $favorite->setUserId($this->user);
         $favorite->setOfferId($this->offer);
+        if (method_exists($favorite, 'setCreatedAt')) {
+            $favorite->setCreatedAt(new \DateTimeImmutable());
+        }
         $this->entityManager->persist($favorite);
         $this->entityManager->flush();
 
-        $this->client->request('GET', '/api/favorites');
+        // Route mise à jour : /api/userfav
+        $this->client->request('GET', '/api/userfav');
 
         $this->assertResponseIsSuccessful();
         $this->assertResponseHeaderSame('content-type', 'application/json');
@@ -176,13 +174,15 @@ class UserFavoriteControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->user);
 
+        // Route mise à jour : /api/userfav
+        // Body mis à jour : offer_id (au lieu de offerId)
         $this->client->request(
             'POST',
-            '/api/favorites',
+            '/api/userfav',
             [],
             [],
             ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['offerId' => $this->offer->getId()])
+            json_encode(['offer_id' => $this->offer->getId()])
         );
 
         $this->assertResponseStatusCodeSame(201);
@@ -195,19 +195,23 @@ class UserFavoriteControllerTest extends WebTestCase
         $favorite = new UserFavorites();
         $favorite->setUserId($this->user);
         $favorite->setOfferId($this->offer);
+        if (method_exists($favorite, 'setCreatedAt')) {
+            $favorite->setCreatedAt(new \DateTimeImmutable());
+        }
         $this->entityManager->persist($favorite);
         $this->entityManager->flush();
 
         $this->client->request(
             'POST',
-            '/api/favorites',
+            '/api/userfav',
             [],
             [],
             ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['offerId' => $this->offer->getId()])
+            json_encode(['offer_id' => $this->offer->getId()])
         );
 
-        $this->assertResponseStatusCodeSame(400);
+        // Statut HTTP mis à jour dans le contrôleur : 409 CONFLICT
+        $this->assertResponseStatusCodeSame(409);
     }
 
     public function testDeleteUserFavoriteSuccess(): void
@@ -217,10 +221,14 @@ class UserFavoriteControllerTest extends WebTestCase
         $favorite = new UserFavorites();
         $favorite->setUserId($this->user);
         $favorite->setOfferId($this->offer);
+        if (method_exists($favorite, 'setCreatedAt')) {
+            $favorite->setCreatedAt(new \DateTimeImmutable());
+        }
         $this->entityManager->persist($favorite);
         $this->entityManager->flush();
 
-        $this->client->request('DELETE', '/api/favorites/' . $this->offer->getId());
+        // Le DELETE prend en paramètre l'ID du UserFavorites ($favorite->getId())
+        $this->client->request('DELETE', '/api/userfav/' . $favorite->getId());
 
         $this->assertResponseStatusCodeSame(204);
     }

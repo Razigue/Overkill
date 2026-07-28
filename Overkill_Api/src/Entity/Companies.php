@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: CompaniesRepository::class)]
 class Companies
@@ -38,6 +39,7 @@ class Companies
         return $this->id;
     }
 
+    #[Groups('offers:read')]
     public function getName(): ?string
     {
         return $this->name;
@@ -83,7 +85,7 @@ class Companies
     public function removeTiedOffer(Offers $tiedOffer): static
     {
         if ($this->tied_offers->removeElement($tiedOffer)) {
-            // set the owning side to null (unless already changed)
+
             if ($tiedOffer->getCompanyId() === $this) {
                 $tiedOffer->setCompanyId(null);
             }
