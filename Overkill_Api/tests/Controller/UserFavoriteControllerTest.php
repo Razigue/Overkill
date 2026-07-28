@@ -21,12 +21,12 @@ class UserFavoriteControllerTest extends WebTestCase
         $this->client = static::createClient();
         $this->entityManager = static::getContainer()->get(EntityManagerInterface::class);
 
-        // Nettoyage de la base de données avant chaque test
+        // Nettoyage de la base de données
         $this->entityManager->createQuery('DELETE FROM App\Entity\UserFavorites')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\Offers')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\User')->execute();
 
-        // Création d'un utilisateur de test
+        // Utilisateur de test
         $this->user = new User();
         $this->user->setEmail('test_favorite_' . uniqid() . '@example.com');
         $this->user->setPassword('password123');
@@ -41,7 +41,7 @@ class UserFavoriteControllerTest extends WebTestCase
 
         $this->entityManager->persist($this->user);
 
-        // Création d'une offre de test avec tous les champs NOT NULL obligatoires
+        // Offre de test
         $this->offer = new Offers();
         if (method_exists($this->offer, 'setTitle')) {
             $this->offer->setTitle('Test Job Offer');
@@ -52,9 +52,20 @@ class UserFavoriteControllerTest extends WebTestCase
         if (method_exists($this->offer, 'setKind')) {
             $this->offer->setKind('job');
         }
-        // Fix de la contrainte NOT NULL sur published_at
+
+        // Remplissage dynamique des champs de type DateTime (published_at, starts_at, etc.)
+        $now = new \DateTimeImmutable();
         if (method_exists($this->offer, 'setPublishedAt')) {
-            $this->offer->setPublishedAt(new \DateTimeImmutable());
+            $this->offer->setPublishedAt($now);
+        }
+        if (method_exists($this->offer, 'setStartsAt')) {
+            $this->offer->setStartsAt($now);
+        }
+        if (method_exists($this->offer, 'setCreatedAt')) {
+            $this->offer->setCreatedAt($now);
+        }
+        if (method_exists($this->offer, 'setUpdatedAt')) {
+            $this->offer->setUpdatedAt($now);
         }
 
         $this->entityManager->persist($this->offer);
