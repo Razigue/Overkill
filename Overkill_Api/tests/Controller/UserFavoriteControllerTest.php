@@ -4,6 +4,7 @@ namespace App\Tests\Controller;
 
 use App\Entity\Companies;
 use App\Entity\Offers;
+use App\Entity\Sources;
 use App\Entity\User;
 use App\Entity\UserFavorites;
 use Doctrine\ORM\EntityManagerInterface;
@@ -23,9 +24,10 @@ class UserFavoriteControllerTest extends WebTestCase
         $this->entityManager = static::getContainer()->get(EntityManagerInterface::class);
         $this->jwtManager = static::getContainer()->get(JWTTokenManagerInterface::class);
 
-        // Nettoyage de la base de données
+        // Nettoyage complet dans l'ordre pour éviter les erreurs de clés étrangères
         $this->entityManager->createQuery('DELETE FROM App\Entity\UserFavorites')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\Offers')->execute();
+        $this->entityManager->createQuery('DELETE FROM App\Entity\Sources')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\Companies')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\User')->execute();
     }
@@ -56,20 +58,40 @@ class UserFavoriteControllerTest extends WebTestCase
         return $company;
     }
 
+    private function createTestSource(): Sources
+    {
+        $source = new Sources();
+        // Ajuste les setters ci-dessous si ton entité Sources a d'autres champs obligatoires
+        if (method_exists($source, 'setName')) {
+            $source->setName('LinkedIn');
+        }
+
+        $this->entityManager->persist($source);
+        $this->entityManager->flush();
+
+        return $source;
+    }
+
     private function createTestOffer(): Offers
     {
         $company = $this->createTestCompany();
+        $source = $this->createTestSource();
+        $now = new \DateTimeImmutable();
 
         $offer = new Offers();
         $offer->setTitle('Développeur PHP / Symfony');
+        $offer->setKind('Job');
         $offer->setDescription('Une super offre de test.');
         $offer->setCompanyId($company);
-        $offer->setCreatedAt(new \DateTimeImmutable());
-        
-        // Ajout du champ obligatoire 'kind' (ou le setter correspondant sur l'entité Offers)
-        if (method_exists($offer, 'setKind')) {
-            $offer->setKind('CDI');
-        }
+        $offer->setSourceId($source);
+        $offer->setExternalUrl('https://example.com/job/1');
+        $offer->setIsDuplicate(false);
+        $offer->setViewsCount(0);
+        $offer->setContract('CDI');
+        $offer->setPublishedAt($now);
+        $offer->setStartsAt($now);
+        $offer->setCreatedAt($now);
+        $offer->setUpdatedAt($now);
 
         $this->entityManager->persist($offer);
         $this->entityManager->flush();
