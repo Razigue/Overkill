@@ -53,7 +53,18 @@ class UserFavoriteControllerTest extends WebTestCase
             $this->offer->setKind('job');
         }
 
-        // Remplissage dynamique des champs de type DateTime (published_at, starts_at, etc.)
+        // Champs texte fréquemment non-nullables
+        if (method_exists($this->offer, 'setContract')) {
+            $this->offer->setContract('CDI');
+        }
+        if (method_exists($this->offer, 'setLocation')) {
+            $this->offer->setLocation('Paris');
+        }
+        if (method_exists($this->offer, 'setCompany')) {
+            $this->offer->setCompany('Test Company');
+        }
+
+        // Champs de type DateTime
         $now = new \DateTimeImmutable();
         if (method_exists($this->offer, 'setPublishedAt')) {
             $this->offer->setPublishedAt($now);
