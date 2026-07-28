@@ -43,6 +43,8 @@ class UserFavoriteControllerTest extends WebTestCase
 
         // Offre de test
         $this->offer = new Offers();
+
+        // Champs textes de base
         if (method_exists($this->offer, 'setTitle')) {
             $this->offer->setTitle('Test Job Offer');
         }
@@ -52,8 +54,6 @@ class UserFavoriteControllerTest extends WebTestCase
         if (method_exists($this->offer, 'setKind')) {
             $this->offer->setKind('job');
         }
-
-        // Champs texte fréquemment non-nullables
         if (method_exists($this->offer, 'setContract')) {
             $this->offer->setContract('CDI');
         }
@@ -62,6 +62,14 @@ class UserFavoriteControllerTest extends WebTestCase
         }
         if (method_exists($this->offer, 'setCompany')) {
             $this->offer->setCompany('Test Company');
+        }
+
+        // Champs de type Array / JSON (dont extracted_skills)
+        if (method_exists($this->offer, 'setExtractedSkills')) {
+            $this->offer->setExtractedSkills(['PHP', 'Symfony']);
+        }
+        if (method_exists($this->offer, 'setSkills')) {
+            $this->offer->setSkills(['PHP', 'Symfony']);
         }
 
         // Champs de type DateTime
