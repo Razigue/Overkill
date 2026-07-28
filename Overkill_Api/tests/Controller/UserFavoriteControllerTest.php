@@ -64,12 +64,31 @@ class UserFavoriteControllerTest extends WebTestCase
             $this->offer->setCompany('Test Company');
         }
 
-        // Champs de type Array / JSON (dont extracted_skills)
+        // Champs externes & identifiants
+        if (method_exists($this->offer, 'setExternalUrl')) {
+            $this->offer->setExternalUrl('https://example.com/job/123');
+        }
+        if (method_exists($this->offer, 'setExternalId')) {
+            $this->offer->setExternalId('EXT-12345');
+        }
+        if (method_exists($this->offer, 'setSource')) {
+            $this->offer->setSource('Indeed');
+        }
+        if (method_exists($this->offer, 'setUrl')) {
+            $this->offer->setUrl('https://example.com/job/123');
+        }
+
+        // Champs de type Array / JSON
         if (method_exists($this->offer, 'setExtractedSkills')) {
             $this->offer->setExtractedSkills(['PHP', 'Symfony']);
         }
         if (method_exists($this->offer, 'setSkills')) {
             $this->offer->setSkills(['PHP', 'Symfony']);
+        }
+
+        // Champs numériques
+        if (method_exists($this->offer, 'setSalary')) {
+            $this->offer->setSalary(45000);
         }
 
         // Champs de type DateTime
