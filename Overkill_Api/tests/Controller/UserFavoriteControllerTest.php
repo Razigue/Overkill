@@ -51,6 +51,17 @@ class UserFavoriteControllerTest extends WebTestCase
             $this->offer->setDuplicate(false);
         }
 
+        // Champs numériques (compteurs & salaires)
+        if (method_exists($this->offer, 'setViewsCount')) {
+            $this->offer->setViewsCount(0);
+        } elseif (method_exists($this->offer, 'setViews')) {
+            $this->offer->setViews(0);
+        }
+
+        if (method_exists($this->offer, 'setSalary')) {
+            $this->offer->setSalary(45000);
+        }
+
         // Champs textes de base
         if (method_exists($this->offer, 'setTitle')) {
             $this->offer->setTitle('Test Job Offer');
@@ -91,11 +102,6 @@ class UserFavoriteControllerTest extends WebTestCase
         }
         if (method_exists($this->offer, 'setSkills')) {
             $this->offer->setSkills(['PHP', 'Symfony']);
-        }
-
-        // Champs numériques
-        if (method_exists($this->offer, 'setSalary')) {
-            $this->offer->setSalary(45000);
         }
 
         // Champs de type DateTime
