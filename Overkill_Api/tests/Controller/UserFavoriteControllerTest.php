@@ -44,6 +44,13 @@ class UserFavoriteControllerTest extends WebTestCase
         // Offre de test
         $this->offer = new Offers();
 
+        // Champs booléens
+        if (method_exists($this->offer, 'setIsDuplicate')) {
+            $this->offer->setIsDuplicate(false);
+        } elseif (method_exists($this->offer, 'setDuplicate')) {
+            $this->offer->setDuplicate(false);
+        }
+
         // Champs textes de base
         if (method_exists($this->offer, 'setTitle')) {
             $this->offer->setTitle('Test Job Offer');
