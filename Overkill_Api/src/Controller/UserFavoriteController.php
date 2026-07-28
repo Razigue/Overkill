@@ -24,7 +24,12 @@ final class UserFavoriteController extends AbstractController
     public function getUserFav(#[CurrentUser] ?User $user, UserFavoritesRepository $userFav)
     {
         $existingUserFav = $userFav->findBy(['user_id' => $user]);
-        return $this->json($existingUserFav);
+        return $this->json(
+            $existingUserFav,
+            Response::HTTP_OK,
+            [],
+            ['groups' => ['favorites:read', 'offers:read']]
+        );
     }
 
 
