@@ -21,24 +21,33 @@ class UserFavoriteControllerTest extends WebTestCase
         $this->client = static::createClient();
         $this->entityManager = static::getContainer()->get(EntityManagerInterface::class);
 
-        // Nettoyage de la base de données
+        // Clean up database entities for tests
         $this->entityManager->createQuery('DELETE FROM App\Entity\UserFavorites')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\Offers')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\User')->execute();
 
-        // Création de l'utilisateur de test
+        // Create test User
         $this->user = new User();
         $this->user->setEmail('test_favorite_' . uniqid() . '@example.com');
         $this->user->setPassword('password123');
         $this->user->setRoles(['ROLE_USER']);
+        
+        // Champs obligatoires si NOT NULL dans votre User
+        if (method_exists($this->user, 'setFirstName')) {
+            $this->user->setFirstName('Test');
+        }
+        if (method_exists($this->user, 'setLastName')) {
+            $this->user->setLastName('User');
+        }
+
         $this->entityManager->persist($this->user);
 
-        // Création de l'offre de test
+        // Create test Offer
         $this->offer = new Offers();
         $this->offer->setTitle('Test Job Offer');
         $this->offer->setDescription('Test Description');
         $this->offer->setCompany('Test Company');
-        $this->offer->setKind('job'); // Fix: Champ obligatoire
+        $this->offer->setKind('job'); // Champ NOT NULL
         
         $this->entityManager->persist($this->offer);
         $this->entityManager->flush();
@@ -49,8 +58,8 @@ class UserFavoriteControllerTest extends WebTestCase
         $this->client->loginUser($this->user);
 
         $favorite = new UserFavorites();
-        $favorite->setUser($this->user);
-        $favorite->setOffer($this->offer);
+        $favorite->setUserId($this->user);
+        $favorite->setOfferId($this->offer);
         $this->entityManager->persist($favorite);
         $this->entityManager->flush();
 
@@ -84,8 +93,8 @@ class UserFavoriteControllerTest extends WebTestCase
         $this->client->loginUser($this->user);
 
         $favorite = new UserFavorites();
-        $favorite->setUser($this->user);
-        $favorite->setOffer($this->offer);
+        $favorite->setUserId($this->user);
+        $favorite->setOfferId($this->offer);
         $this->entityManager->persist($favorite);
         $this->entityManager->flush();
 
@@ -106,8 +115,8 @@ class UserFavoriteControllerTest extends WebTestCase
         $this->client->loginUser($this->user);
 
         $favorite = new UserFavorites();
-        $favorite->setUser($this->user);
-        $favorite->setOffer($this->offer);
+        $favorite->setUserId($this->user);
+        $favorite->setOfferId($this->offer);
         $this->entityManager->persist($favorite);
         $this->entityManager->flush();
 
