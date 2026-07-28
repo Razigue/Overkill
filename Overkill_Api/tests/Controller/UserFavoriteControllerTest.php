@@ -2,6 +2,7 @@
 
 namespace App\Tests\Controller;
 
+use App\Entity\Company;
 use App\Entity\Offers;
 use App\Entity\User;
 use App\Entity\UserFavorites;
@@ -21,12 +22,17 @@ class UserFavoriteControllerTest extends WebTestCase
         $this->client = static::createClient();
         $this->entityManager = static::getContainer()->get(EntityManagerInterface::class);
 
-        // Nettoyage de la base de données
+        // Nettoyage de la base de données dans l'ordre pour respecter les contraintes de clés étrangères
         $this->entityManager->createQuery('DELETE FROM App\Entity\UserFavorites')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\Offers')->execute();
+
+        if (class_exists('App\Entity\Company')) {
+            $this->entityManager->createQuery('DELETE FROM App\Entity\Company')->execute();
+        }
+
         $this->entityManager->createQuery('DELETE FROM App\Entity\User')->execute();
 
-        // Utilisateur de test
+        // 1. Création de l'utilisateur de test
         $this->user = new User();
         $this->user->setEmail('test_favorite_' . uniqid() . '@example.com');
         $this->user->setPassword('password123');
@@ -41,8 +47,30 @@ class UserFavoriteControllerTest extends WebTestCase
 
         $this->entityManager->persist($this->user);
 
-        // Offre de test
+        // 2. Création de l'entreprise (requise par la relation ManyToOne non nulle sur Offers)
+        $companyEntity = null;
+        if (class_exists('App\Entity\Company')) {
+            $companyEntity = new Company();
+            if (method_exists($companyEntity, 'setName')) {
+                $companyEntity->setName('Test Company');
+            }
+            if (method_exists($companyEntity, 'setExternalId')) {
+                $companyEntity->setExternalId('COMP-12345');
+            }
+            $this->entityManager->persist($companyEntity);
+        }
+
+        // 3. Création de l'offre de test
         $this->offer = new Offers();
+
+        // Association de la relation Company
+        if ($companyEntity !== null) {
+            if (method_exists($this->offer, 'setCompanyId')) {
+                $this->offer->setCompanyId($companyEntity);
+            } elseif (method_exists($this->offer, 'setCompany')) {
+                $this->offer->setCompany($companyEntity);
+            }
+        }
 
         // Champs booléens
         if (method_exists($this->offer, 'setIsDuplicate')) {
@@ -78,8 +106,10 @@ class UserFavoriteControllerTest extends WebTestCase
         if (method_exists($this->offer, 'setLocation')) {
             $this->offer->setLocation('Paris');
         }
-        if (method_exists($this->offer, 'setCompany')) {
-            $this->offer->setCompany('Test Company');
+
+        // Au cas où 'company' est une simple chaîne de caractères en plus de l'entité
+        if (method_exists($this->offer, 'setCompany') && $companyEntity === null) {
+            $this->offer->setCompany('Test Company Name');
         }
 
         // Champs externes & identifiants
