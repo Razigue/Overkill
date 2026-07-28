@@ -21,12 +21,12 @@ class UserFavoriteControllerTest extends WebTestCase
         $this->client = static::createClient();
         $this->entityManager = static::getContainer()->get(EntityManagerInterface::class);
 
-        // Nettoyage de la base
+        // Nettoyage de la base de données avant chaque test
         $this->entityManager->createQuery('DELETE FROM App\Entity\UserFavorites')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\Offers')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\User')->execute();
 
-        // Utilisateur de test
+        // Création d'un utilisateur de test
         $this->user = new User();
         $this->user->setEmail('test_favorite_' . uniqid() . '@example.com');
         $this->user->setPassword('password123');
@@ -41,7 +41,7 @@ class UserFavoriteControllerTest extends WebTestCase
 
         $this->entityManager->persist($this->user);
 
-        // Offre de test
+        // Création d'une offre de test avec tous les champs NOT NULL obligatoires
         $this->offer = new Offers();
         if (method_exists($this->offer, 'setTitle')) {
             $this->offer->setTitle('Test Job Offer');
@@ -51,6 +51,10 @@ class UserFavoriteControllerTest extends WebTestCase
         }
         if (method_exists($this->offer, 'setKind')) {
             $this->offer->setKind('job');
+        }
+        // Fix de la contrainte NOT NULL sur published_at
+        if (method_exists($this->offer, 'setPublishedAt')) {
+            $this->offer->setPublishedAt(new \DateTimeImmutable());
         }
 
         $this->entityManager->persist($this->offer);
