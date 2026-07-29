@@ -189,3 +189,235 @@ php vendor/bin/phpunit tests/Controller/SecurityControllerTest.php
 ```
 
 ---
+
+# Documentation de : `CvControllerTest.php`
+
+Cette partie détaille les cas de tests fonctionnels et d'intégration implémentés dans la classe `CvControllerTest`.
+
+---
+
+## 📌 Vue d'ensemble
+
+* **Classe de test :** `App\Tests\Controller\CvControllerTest`
+* **Type :** Test d'intégration web (`WebTestCase`)
+* **Objectif :** Valider les fonctionnalités de gestion des CV (téléversement, validation de format/fichier et récupération de la liste des CVs enregistrés par un utilisateur connecté).
+
+---
+
+## 📌 Endpoints Couverts
+
+| Endpoint | Méthode | Authentification | Description |
+| :--- | :--- | :--- | :--- |
+| `/api/cvs` | `GET` | **Requis (JWT)** | Récupère la liste de tous les CV appartenant à l'utilisateur connecté |
+| `/api/cvs/upload` | `POST` | **Requis (JWT)** | Permet le téléversement d'un nouveau fichier de CV (PDF, DOC, DOCX) |
+
+---
+
+## 📌 Méthodes d'Aide (Helpers)
+
+La classe intègre deux helpers privés pour simplifier la configuration des tests :
+
+1. **`createAuthenticatedUser(string $email)`**
+   * **Rôle :** Instancie et persiste un utilisateur en base de données, effectue une requête de connexion (`/api/login`) et retourne un tuple `[$user, $token]` contenant l'entité et son jeton d'accès JWT.
+2. **`createDummyFile(string $originalName, string $content)`**
+   * **Rôle :** Génère un fichier temporaire sur le système avec un contenu simulé (ex: entête `%PDF-1.4`) et retourne une instance de `Symfony\Component\HttpFoundation\File\UploadedFile` configurée en mode test.
+
+---
+
+## 📌 Détails des Cas de Tests
+
+### 1. Sécurité / Accès Non Autorisé
+
+#### 🔒 `testListCvsUnauthorized()`
+* **Objectif :** Vérifier que l'accès à la liste des CVs sans jeton d'authentification est bloqué.
+* **Scénario :** Envoi d'une requête `GET /api/cvs` sans en-tête `Authorization`.
+* **Assertions :**
+  * Statut HTTP `401 Unauthorized`.
+
+#### 🔒 `testUploadCvUnauthorized()`
+* **Objectif :** Vérifier que le téléversement d'un CV sans authentification est bloqué.
+* **Scénario :** Envoi d'une requête `POST /api/cvs/upload` sans en-tête `Authorization`.
+* **Assertions :**
+  * Statut HTTP `401 Unauthorized`.
+
+---
+
+### 2. Consultation de la Liste des CVs (`GET /api/cvs`)
+
+#### 📄 `testListCvsSuccess()`
+* **Objectif :** Valider la récupération de la liste des CVs associés à l'utilisateur authentifié.
+* **Préconditions :** 
+  * Création d'un utilisateur de test (`list_owner@epitech.eu`).
+  * Insertion en base d'un enregistrement `Cv` rattaché à cet utilisateur.
+* **Scénario :** Envoi d'une requête `GET /api/cvs` avec l'en-tête `Authorization: Bearer <TOKEN>`.
+* **Assertions :**
+  * Statut HTTP `200 OK`.
+  * La réponse est un tableau JSON contenant exactement 1 élément.
+  * Validation des champs `originalName`, `filePath` (formaté sous `/uploads/cvs/...`) et présence de la clé `uploadedAt`.
+
+---
+
+### 3. Téléversement de CV (`POST /api/cvs/upload`)
+
+#### 📤 `testUploadCvSuccess()`
+* **Objectif :** S'assurer qu'un utilisateur authentifié peut téléverser un fichier valide avec succès.
+* **Scénario :**
+  1. Authentification d'un utilisateur `uploader@epitech.eu`.
+  2. Simulation de l'envoi d'un fichier PDF valide (`mon_cv_test.pdf`) via la clé multipart `file`.
+* **Assertions :**
+  * Statut HTTP `201 Created`.
+  * Message de confirmation : `"CV envoyé avec succès !"`.
+  * Le nom du fichier enregistré utilise le slugger Symfony (transformation des tirets du bas `_` en tirets `-` : `mon-cv-test-...`).
+
+#### ⚠️ `testUploadCvNoFile()`
+* **Objectif :** Vérifier la gestion d'erreur lorsqu'aucun fichier n'est joint à la requête.
+* **Scénario :** Envoi d'une requête `POST /api/cvs/upload` avec des données de fichiers vides.
+* **Assertions :**
+  * Statut HTTP `400 Bad Request`.
+  * Message d'erreur JSON : `"Aucun fichier fourni"`.
+
+#### ❌ `testUploadCvInvalidExtension()`
+* **Objectif :** Valider le rejet des fichiers ayant un format non autorisé.
+* **Scénario :** Tentative de téléversement d'un fichier exécutable (`script.exe`).
+* **Assertions :**
+  * Statut HTTP `400 Bad Request`.
+  * Message d'erreur JSON : `"Format non autorisé (PDF, DOC, DOCX uniquement)"`.
+
+---
+
+## ⚙️ Exécution des Tests
+
+Pour exécuter uniquement cette suite de tests localement :
+
+```bash
+php vendor/bin/phpunit tests/Controller/CvControllerTest.php
+```
+
+---
+
+# Documentation de : `OffersControllerTest.php`
+
+Cette partie détaille les cas de tests fonctionnels et d'intégration implémentés dans la classe `OffersControllerTest`.
+
+---
+
+## 📌 Vue d'ensemble
+
+* **Classe de test :** `App\Tests\Controller\OffersControllerTest`
+* **Type :** Test d'intégration web (`WebTestCase`)
+* **Objectif :** Valider l'intégralité du cycle de vie des offres d'emploi (`Offers`) : recherche/filtrage, création d'offre avec associations complexes (Entreprises, Sources, Catégories), consultation détaillée et suppression.
+
+---
+
+## 📌 Endpoints Couverts
+
+| Endpoint | Méthode | Authentification | Description |
+| :--- | :--- | :--- | :--- |
+| `/api/offers` | `GET` | **Requis (JWT)** | Liste les offres d'emploi (supporte le filtrage par mots-clés, ville, etc.) |
+| `/api/offers` | `POST` | **Requis (JWT)** | Crée une nouvelle offre d'emploi avec ses dépendances rattachées |
+| `/api/offers/{id}` | `GET` | **Requis (JWT)** | Récupère les détails d'une offre spécifique par son identifiant |
+| `/api/offers/{id}` | `DELETE` | **Requis (JWT)** | Supprime définitivement une offre d'emploi de la base de données |
+
+---
+
+## 📌 Méthodes d'Aide & Configuration (`setUp`)
+
+1. **`setUp()`**
+   * Génère dynamiquement un utilisateur de test unique (`ROLE_USER`) et l'enregistre en BDD.
+   * Génère un jeton JWT valide et configure automatiquement l'en-tête global `Authorization: Bearer <TOKEN>` pour toutes les requêtes du client HTTP HTTPMock.
+2. **`createDependencies()`**
+   * **Rôle :** Instancie et persiste les entités dépendantes indispensables à la création d'une offre :
+     * `Companies` (Nom unique)
+     * `Sources` (Nom, URL de base et code unique)
+     * `Categories` (Nom de catégorie unique)
+   * **Retour :** Un tuple d'entités `[$company, $source, $category]`.
+
+---
+
+## 📌 Détails des Cas de Tests
+
+### 1. Recherche & Liste des Offres (`GET /api/offers`)
+
+#### 🔍 `testGetOffersEmptyOrList()`
+* **Objectif :** Vérifier que la récupération de la liste des offres répond correctement au format JSON.
+* **Scénario :** Envoi d'une requête `GET /api/offers`.
+* **Assertions :**
+  * Statut HTTP `200 OK`.
+  * En-tête `Content-Type` égal à `application/json`.
+
+#### 🔎 `testGetOffersWithFilters()`
+* **Objectif :** S'assurer que les filtres de recherche (query params) sont acceptés sans erreur système.
+* **Scénario :** Envoi d'une requête `GET /api/offers?q=Developer&city=Paris`.
+* **Assertions :**
+  * Statut HTTP `200 OK`.
+
+---
+
+### 2. Création d'une Offre (`POST /api/offers`)
+
+#### ➕ `testPostOfferSuccess()`
+* **Objectif :** Valider la création d'une offre d'emploi complète avec toutes ses métadonnées (mots-clés, salaires, géolocalisation, etc.).
+* **Scénario :**
+  1. Génération des dépendances via `createDependencies()`.
+  2. Envoi d'un payload JSON complet comprenant `company_id`, `source_id`, `category_id`, compétences transmises sous `extractedSkills`, etc.
+* **Assertions :**
+  * Statut HTTP `201 Created`.
+  * Le titre renvoyé dans la réponse correspond bien à `"Développeur PHP / Symfony"`.
+
+#### ⚠️ `testPostOfferCompanyNotFound()`
+* **Objectif :** Vérifier le rejet de la création d'une offre si l'entreprise spécifiée n'existe pas en BDD.
+* **Scénario :** Envoi d'un payload avec un ID d'entreprise inexistant (`company_id: 999999`).
+* **Assertions :**
+  * Statut HTTP `404 Not Found`.
+
+---
+
+### 3. Consultation Détail (`GET /api/offers/{id}`)
+
+#### ❌ `testGetOfferByIdNotFound()`
+* **Objectif :** Vérifier le traitement d'une demande pour une offre inexistante.
+* **Scénario :** Envoi d'une requête `GET /api/offers/999999`.
+* **Assertions :**
+  * Statut HTTP `404 Not Found`.
+  * Message d'erreur JSON : `"Aucune offre trouvee"`.
+
+#### 📖 `testGetOfferByIdSuccess()`
+* **Objectif :** Récupérer les informations détaillées d'une offre existante en base de données.
+* **Préconditions :** Création manuelle et persistence d'une entité `Offers` avec ses dépendances.
+* **Scénario :** Envoi d'une requête `GET /api/offers/{id}`.
+* **Assertions :**
+  * Statut HTTP `200 OK`.
+  * Le titre correspond au titre persisté (`"Offre de test ID"`).
+
+---
+
+### 4. Suppression (`DELETE /api/offers/{id}`)
+
+#### ❌ `testDeleteOfferNotFound()`
+* **Objectif :** S'assurer qu'une tentative de suppression sur un ID inexistant renvoie une erreur appropriée.
+* **Scénario :** Envoi d'une requête `DELETE /api/offers/999999`.
+* **Assertions :**
+  * Statut HTTP `404 Not Found`.
+  * Message d'erreur JSON : `"Aucune offre trouvee"`.
+
+#### 🗑️ `testDeleteOfferSuccess()`
+* **Objectif :** Valider la suppression effective d'une offre d'emploi.
+* **Scénario :**
+  1. Instanciation et sauvegarde d'une offre d'emploi de test.
+  2. Envoi d'une requête `DELETE /api/offers/{id}`.
+  3. Envoi consécutif d'une requête `GET /api/offers/{id}` sur le même ID pour confirmer la suppression.
+* **Assertions :**
+  * Statut de la suppression : `204 No Content`.
+  * Statut de la vérification suivante : `404 Not Found`.
+
+---
+
+## ⚙️ Exécution des Tests
+
+Pour exécuter uniquement cette suite de tests localement :
+
+```bash
+php vendor/bin/phpunit tests/Controller/OffersControllerTest.php
+```
+
+---
