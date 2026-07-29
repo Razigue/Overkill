@@ -82,3 +82,110 @@ Chaque job de test backend injecte les variables d'environnement suivantes :
 | `JWT_PASSPHRASE` | Passphrase de test pour le token JWT |
 
 ---
+
+# Documentation de  : `SecurityControllerTest.php`
+
+Cette partie détaille les cas de tests fonctionnels et d'intégration implémentés dans la classe `SecurityControllerTest`.
+
+---
+
+## 📌 Vue d'ensemble
+
+* **Classe de test :** `App\Tests\Controller\SecurityControllerTest`
+* **Type :** Test d'intégration web (`WebTestCase`)
+* **Objectif :** Valider les fonctionnalités du contrôleur de sécurité (`SecurityController`), incluant l'authentification (login), l'inscription (register), l'accès au profil utilisateur (`/api/me`) et la vérification de l'état de la base de données (`/api/check/database`).
+
+---
+
+## 📌 Endpoints Couverts
+
+| Endpoint | Méthode | Authentification | Description |
+| :--- | :--- | :--- | :--- |
+| `/api/login` | `POST` | Non | Authentification de l'utilisateur et génération de Token JWT |
+| `/api/register` | `POST` | Non | Inscription d'un nouvel utilisateur |
+| `/api/me` | `GET` | **Requis (JWT)** | Récupération des informations du profil connecté |
+| `/api/check/database` | `POST` | **Requis (JWT)** | Endpoint de diagnostic de connexion à la base de données |
+
+---
+
+## 📌 Détails des Cas de Tests
+
+### 1. Authentification (Login)
+
+#### 🔑 `testLoginSuccess()`
+* **Objectif :** Vérifier qu'un utilisateur enregistré avec des identifiants valides peut se connecter avec succès.
+* **Préconditions :** Création et insertion en base d'un utilisateur `user@epitech.eu` avec un mot de passe haché.
+* **Scénario :** Envoi d'une requête `POST /api/login` contenant les identifiants valides au format JSON.
+* **Assertions :**
+  * Statut HTTP `200 OK` (`assertResponseIsSuccessful`).
+  * La réponse contient une clé `token` (Token JWT) ou les données de l'utilisateur.
+  * Si l'objet `user` est renvoyé, validation de l'adresse email.
+
+#### ❌ `testLoginInvalidCredentials()`
+* **Objectif :** S'assurer qu'une tentative de connexion avec des identifiants erronés est rejetée.
+* **Scénario :** Envoi d'une requête `POST /api/login` avec un email/mot de passe inconnu (`wrong@epitech.eu`).
+* **Assertions :**
+  * Statut HTTP `401 Unauthorized`.
+
+---
+
+### 2. Inscription (Register)
+
+#### 📝 `testRegisterSuccess()`
+* **Objectif :** Valider la création d'un nouveau compte utilisateur.
+* **Scénario :** Envoi d'une requête `POST /api/register` avec les données d'un nouvel utilisateur (`newstudent@epitech.eu`).
+* **Assertions :**
+  * Statut HTTP `201 Created`.
+  * La réponse JSON contient la clé `user` et l'email correspond bien à la demande.
+
+#### ⚠️ `testRegisterDuplicateEmail()`
+* **Objectif :** Vérifier que le système empêche la création de comptes multiples avec la même adresse email.
+* **Préconditions :** Création préalable en base d'un utilisateur `existing@epitech.eu`.
+* **Scénario :** Envoi d'une requête `POST /api/register` tentant d'utiliser l'email `existing@epitech.eu`.
+* **Assertions :**
+  * Statut HTTP `409 Conflict`.
+
+---
+
+### 3. Profil Utilisateur (`/api/me`)
+
+#### 🚫 `testMeUnauthorized()`
+* **Objectif :** Vérifier qu'un utilisateur anonyme (sans jeton JWT) ne peut pas accéder aux informations de profil.
+* **Scénario :** Envoi d'une requête `GET /api/me` sans en-tête `Authorization`.
+* **Assertions :**
+  * Statut HTTP `401 Unauthorized`.
+
+#### 👤 `testMeAuthenticated()`
+* **Objectif :** Vérifier qu'un utilisateur authentifié reçoit bien les données de son profil.
+* **Scénario :**
+  1. Création d'un utilisateur `authenticated@epitech.eu`.
+  2. Authentification via `POST /api/login` pour récupérer un jeton JWT.
+  3. Requête `GET /api/me` en fournissant le jeton dans l'en-tête `Authorization: Bearer <TOKEN>`.
+* **Assertions :**
+  * Statut HTTP `200 OK`.
+  * L'adresse email renvoyée correspond à celle de l'utilisateur connecté (`authenticated@epitech.eu`).
+
+---
+
+### 4. Healthcheck Database
+
+#### 🏥 `testCheckDatabase()`
+* **Objectif :** Valider le fonctionnement de l'endpoint de vérification de l'état de la base de données réservé aux utilisateurs authentifiés.
+* **Scénario :**
+  1. Authentification d'un utilisateur de test `dbcheck@epitech.eu` pour obtenir un token JWT.
+  2. Envoi d'une requête `POST /api/check/database` avec le jeton Bearer.
+* **Assertions :**
+  * Statut HTTP `200 OK`.
+  * La réponse JSON contient au moins la clé `status`.
+
+---
+
+## ⚙️ Exécution des Tests
+
+Pour exécuter uniquement ce jeu de tests localement :
+
+```bash
+php vendor/bin/phpunit tests/Controller/SecurityControllerTest.php
+```
+
+---
