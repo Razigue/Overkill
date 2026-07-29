@@ -4,7 +4,7 @@ export async function listOffers(filters = {}) {
   // Le backend se charge de lire Neon et de normaliser les offres provenant
   // de France Travail et WeLoveDevs.
 
-  /*
+  
   const apiUrl = 'http://localhost:8000'
   const queryParams = new URLSearchParams()
 
@@ -14,7 +14,7 @@ export async function listOffers(filters = {}) {
     }
   })
 
-  const response = await fetch(`${apiUrl}/api/offers?${queryParams.toString()}`, {
+  const response = await fetch(`${apiUrl}/api/offers`, {
     method: 'GET',
     headers: {
       Accept: 'application/json',
@@ -28,15 +28,16 @@ export async function listOffers(filters = {}) {
   }
 
   const data = await response.json()
+  console.log(data[0])
 
   // TODO API FORMAT :
   // Adapter cette ligne uniquement si Symfony enveloppe les résultats
   // dans une propriété `offers` ou `data`.
   return Array.isArray(data) ? data : data.offers || data.data || []
-  */
+  
 
-  void filters // À retirer lorsque l'exemple d'appel ci-dessus sera activé.
-  return []
+  // void filters // À retirer lorsque l'exemple d'appel ci-dessus sera activé.
+  return data
 }
 
 export const offerFilterOptions = {
