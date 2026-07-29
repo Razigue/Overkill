@@ -421,3 +421,197 @@ php vendor/bin/phpunit tests/Controller/OffersControllerTest.php
 ```
 
 ---
+
+# Documentation de : `UserFavoriteControllerTest.php`
+
+Ce document détaille les cas de tests fonctionnels et d'intégration implémentés dans la classe `UserFavoriteControllerTest`.
+
+---
+
+## 📌 Vue d'ensemble
+
+* **Classe de test :** `App\Tests\Controller\UserFavoriteControllerTest`
+* **Type :** Test d'intégration web (`WebTestCase`)
+* **Objectif :** Valider les fonctionnalités de gestion des offres d'emploi favorites pour un utilisateur (ajout aux favoris, consultation de la liste, détection des doublons et suppression).
+
+---
+
+## 📌 Endpoints Couverts
+
+| Endpoint | Méthode | Authentification | Description |
+| :--- | :--- | :--- | :--- |
+| `/api/userfav` | `GET` | **Requis (JWT)** | Récupère la liste des offres d'emploi mises en favoris par l'utilisateur connecté |
+| `/api/userfav` | `POST` | **Requis (JWT)** | Ajoute une offre d'emploi aux favoris de l'utilisateur connecté |
+| `/api/userfav/{id}` | `DELETE` | **Requis (JWT)** | Retire un favori spécifique par son identifiant unique |
+
+---
+
+## 📌 Méthodes d'Aide & Configuration (`setUp`)
+
+1. **`setUp()`**
+   * Réinitialise l'environnement de test à chaque exécution.
+   * Effectue un **nettoyage complet de la base de données** (suppression de toutes les entrées dans `UserFavorites`, `Offers`, `Sources`, `Companies` et `User`) pour éviter les conflits d'isolation.
+2. **`createTestUser(string $email)`**
+   * Crée, hache le mot de passe et persiste un utilisateur de test (`ROLE_USER`).
+3. **`createTestCompany()` / `createTestSource()` / `createTestOffer()`**
+   * Génèrent et enregistrent les entités dépendantes nécessaires (`Companies`, `Sources`, `Offers`) avec la gestion de la compatibilité selon la signature des setters (`setExtractedSkills` / `setExtracted_skills`).
+4. **`generateAuthHeader(User $user)`**
+   * Génère un jeton JWT d'authentification valide pour l'utilisateur passé en paramètre et retourne les en-têtes HTTP de requêtes (`HTTP_AUTHORIZATION` et `CONTENT_TYPE: application/json`).
+
+---
+
+## 📌 Détails des Cas de Tests
+
+### 1. Consultation des Favoris (`GET /api/userfav`)
+
+#### 📋 `testGetUserFavoritesList()`
+* **Objectif :** Vérifier qu'un utilisateur authentifié peut récupérer sa liste d'offres favorites.
+* **Préconditions :** 
+  * Création d'un utilisateur, d'une offre de test et insertion préalable d'une entrée dans `UserFavorites`.
+* **Scénario :** Envoi d'une requête `GET /api/userfav` avec le jeton JWT.
+* **Assertions :**
+  * Statut HTTP `200 OK`.
+  * En-tête `Content-Type` égal à `application/json`.
+  * La réponse JSON renvoie un tableau non vide.
+
+---
+
+### 2. Ajout d'un Favori (`POST /api/userfav`)
+
+#### ➕ `testPostUserFavoriteSuccess()`
+* **Objectif :** Valider qu'un utilisateur peut ajouter une offre valide à ses favoris.
+* **Scénario :**
+  1. Instanciation d'un utilisateur et d'une offre d'emploi.
+  2. Envoi d'une requête `POST /api/userfav` contenant le payload `{"offer_id": <OFFER_ID>}`.
+* **Assertions :**
+  * Statut HTTP `201 Created`.
+
+#### ⚠️ `testPostUserFavoriteAlreadyExists()`
+* **Objectif :** Vérifier que l'API empêche le ciblage multiple d'une même offre en favori (gestion du doublon).
+* **Préconditions :** L'offre est déjà associée à l'utilisateur dans `UserFavorites`.
+* **Scénario :** Tentative de ré-envoi d'une requête `POST /api/userfav` sur la même offre (`offer_id`).
+* **Assertions :**
+  * Statut HTTP `409 Conflict`.
+
+---
+
+### 3. Suppression d'un Favori (`DELETE /api/userfav/{id}`)
+
+#### 🗑️ `testDeleteUserFavoriteSuccess()`
+* **Objectif :** Valider le retrait effectif d'un favori existant.
+* **Préconditions :** L'entrée `UserFavorites` est préalablement créée et enregistrée en base de données.
+* **Scénario :** Envoi d'une requête `DELETE /api/userfav/{favorite_id}`.
+* **Assertions :**
+  * Statut HTTP `204 No Content`.
+
+---
+
+## ⚙️ Exécution des Tests
+
+Pour exécuter uniquement cette suite de tests localement :
+
+```bash
+php vendor/bin/phpunit tests/Controller/UserFavoriteControllerTest.php
+```
+
+---
+
+# Documentation de : `UserSkillControllerTest.php`
+
+Ce document détaille les cas de tests fonctionnels et d'intégration implémentés dans la classe `UserSkillControllerTest`.
+
+---
+
+## 📌 Vue d'ensemble
+
+* **Classe de test :** `App\Tests\Controller\UserSkillControllerTest`
+* **Type :** Test d'intégration web (`WebTestCase`)
+* **Objectif :** Valider les fonctionnalités de gestion des compétences utilisateur (`Skill`) : consultation de ses compétences, ajout d'une compétence (avec création ou réutilisation d'une entité existante), validation des champs requis et suppression du profil.
+
+---
+
+## 📌 Endpoints Couverts
+
+| Endpoint | Méthode | Authentification | Description |
+| :--- | :--- | :--- | :--- |
+| `/api/user/skills` | `GET` | **Requis (JWT)** | Récupère la liste des compétences associées à l'utilisateur connecté |
+| `/api/user/skills` | `POST` | **Requis (JWT)** | Ajoute une compétence au profil utilisateur (crée l'entité ou réutilise une entité `Skill` existante) |
+| `/api/user/skills/{id}` | `DELETE` | **Requis (JWT)** | Dissocie/Supprime une compétence du profil de l'utilisateur connecté |
+
+---
+
+## 📌 Configuration Initiale (`setUp`)
+
+* **Génération de l'Utilisateur :** Crée dynamiquement un utilisateur unique (`ROLE_USER`) et le persiste en base de données.
+* **Authentification JWT :** Génère un jeton JWT valide et configure automatiquement l'en-tête global `Authorization: Bearer <TOKEN>` ainsi que la session du client HTTP (`loginUser`).
+
+---
+
+## 📌 Détails des Cas de Tests
+
+### 1. Consultation des Compétences (`GET /api/user/skills`)
+
+#### 📋 `testListSkills()`
+* **Objectif :** Vérifier que l'utilisateur authentifié peut consulter la liste de ses compétences au format JSON.
+* **Scénario :** Envoi d'une requête `GET /api/user/skills`.
+* **Assertions :**
+  * Statut HTTP `200 OK`.
+  * En-tête `Content-Type` égal à `application/json`.
+  * La réponse JSON est bien un tableau (qui peut être vide si aucune compétence n'a encore été rattachée).
+
+---
+
+### 2. Ajout de Compétences (`POST /api/user/skills`)
+
+#### ➕ `testAddSkillSuccess()`
+* **Objectif :** Valider l'ajout d'une nouvelle compétence unique au profil de l'utilisateur.
+* **Scénario :** Envoi d'un payload JSON contenant le nom d'une nouvelle compétence (`{"name": "Symfony 7 - <UNIQ>"}`).
+* **Assertions :**
+  * Statut HTTP `201 Created`.
+  * Message de confirmation : `"Compétence ajoutée avec succès"`.
+  * La clé `skill` retournée contient le nom transmis.
+
+#### ⚠️ `testAddSkillEmptyNameValidation()`
+* **Objectif :** S'assurer qu'un nom de compétence vide ou composé uniquement d'espaces est rejeté par la validation.
+* **Scénario :** Envoi d'un payload JSON avec un nom invalide (`{"name": "   "}`).
+* **Assertions :**
+  * Statut HTTP `400 Bad Request`.
+  * Message d'erreur JSON : `"Le nom de la compétence est requis."`.
+
+#### 🔄 `testAddExistingSkillReusesEntity()`
+* **Objectif :** Vérifier le mécanisme d'optimisation / dédoublonnage : si une compétence existe déjà globalement en BDD, le système doit réutiliser l'entité `Skill` existante plutôt que d'en créer un doublon.
+* **Préconditions :** Création et enregistrement préalable d'une entité `Skill` en base de données.
+* **Scénario :** Envoi d'une requête `POST /api/user/skills` en ciblant le même nom de compétence.
+* **Assertions :**
+  * Statut HTTP `201 Created`.
+  * L'identifiant `id` de la compétence retournée dans la réponse est strictement identique à l'ID de la compétence déjà existante.
+
+---
+
+### 3. Suppression de Compétences (`DELETE /api/user/skills/{id}`)
+
+#### 🗑️ `testRemoveSkillSuccess()`
+* **Objectif :** Valider la dissociation/suppression d'une compétence associée à l'utilisateur.
+* **Préconditions :** Création d'une compétence et rattachement à l'utilisateur de test via `$user->addSkill($skill)`.
+* **Scénario :** Envoi d'une requête `DELETE /api/user/skills/{skill_id}`.
+* **Assertions :**
+  * Statut HTTP `200 OK`.
+  * Message de confirmation : `"Compétence supprimée avec succès"`.
+
+#### ❌ `testRemoveSkillNotFound()`
+* **Objectif :** Vérifier la gestion d'erreur en cas de tentative de suppression d'une compétence inexistante.
+* **Scénario :** Envoi d'une requête `DELETE /api/user/skills/999999`.
+* **Assertions :**
+  * Statut HTTP `404 Not Found`.
+
+---
+
+## ⚙️ Exécution des Tests
+
+Pour exécuter uniquement cette suite de tests localement :
+
+```bash
+php vendor/bin/phpunit tests/Controller/UserSkillControllerTest.php
+```
+
+---
