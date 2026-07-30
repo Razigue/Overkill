@@ -35,9 +35,24 @@ final class OffersController extends AbstractController
             'category'  => $request->query->get('category'),
         ];
 
-        $validOffers = $offers->search($filters);
+        $page = $request->query->getInt('page', 1);
 
-        return $this->json($validOffers, Response::HTTP_OK, [], ['groups' => 'offers:read']);
+        $paginator = $offers->search($filters, $page);
+        $total = count($paginator);
+
+        return $this->json(
+            [
+                'items'      => iterator_to_array($paginator),
+                'pagination' => [
+                    'page'       => $page,
+                    'total'      => $total,
+                    'totalPages' => (int) ceil($total / 3),
+                ],
+            ],
+            Response::HTTP_OK,
+            [],
+            ['groups' => 'offers:read']
+        );
     }
 
     #[Route('/api/offers', name: 'api_create_offers', methods: ['POST'])]
