@@ -12,6 +12,7 @@ import heartFilledIcon from '../assets/icons/heart-filled.svg'
 import arrowLeftIcon from '../assets/icons/arrow-left.svg'
 import externalLinkIcon from '../assets/icons/external-link.svg'
 
+
 const EMPTY_FILTERS = {
   q: '',
   city: '',
@@ -41,6 +42,7 @@ function Feed() {
     // pas l'ID de l'offre. L'état actuel ne contient que les IDs d'offres pour la démo.
     // Le localStorage sert uniquement à tester l'interface en attendant le branchement.
     const savedFavorites = localStorage.getItem('overkill-favorites')
+    
     return savedFavorites ? JSON.parse(savedFavorites) : []
   })
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
@@ -59,6 +61,7 @@ function Feed() {
 
   useEffect(() => {
     let isCurrentRequest = true
+
 
     // TODO API : cet appel utilisera GET /api/offers une fois `listOffers`
     // branché dans `src/services/offers.js`.
@@ -203,6 +206,9 @@ function Feed() {
     closeOffer(false)
   }
 
+  console.log(offers)
+  console.log(status)
+
   return (
     <div className="min-h-screen bg-[#faf7f4] text-[#171717]">
       <div id="feed-page-content" onClick={handlePageClick}>
@@ -269,9 +275,10 @@ function Feed() {
                 <div className="flex items-baseline gap-3">
                   <h2 className="text-xl font-semibold text-black">Offres récentes</h2>
                   <span className="text-sm text-gray-500">
+                    
                     {status === 'loading'
                       ? 'Chargement…'
-                      : `${offers.length} résultat${offers.length > 1 ? 's' : ''}`}
+                      : ` ${ offers.length }  résultat ${ offers.length > 1 ? 's' : '' }`}
                   </span>
                 </div>
                 <button
@@ -578,7 +585,7 @@ function OfferCard({ offer, isSelected, isFavorite, onSelect, onFavorite }) {
         aria-label={`Ouvrir l’offre ${offer.title} chez ${offer.company}`}
       >
         <div className="flex items-start gap-3.5">
-          <CompanyMark offer={offer} />
+          {/* <CompanyMark offer={offer} /> */}
           <div className="min-w-0 flex-1">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
@@ -600,7 +607,7 @@ function OfferCard({ offer, isSelected, isFavorite, onSelect, onFavorite }) {
 
             <div className="mt-4 flex flex-wrap items-end justify-between gap-3 border-t border-gray-100 pt-3">
               <p className="text-xs leading-5 text-gray-500">
-                {offer.skills.slice(0, 3).join(' · ')}
+                {/* {offer.skills.slice(0, 3).join(' · ')} */}
               </p>
               <div className="text-right">
                 <p className="text-xs text-gray-500">{offer.remoteLabel}</p>
@@ -670,7 +677,7 @@ function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite }) {
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="px-5 py-7 sm:px-7 sm:py-8">
           <div className="flex items-start gap-4">
-            <CompanyMark offer={offer} large />
+            {/* <CompanyMark offer={offer} large /> */}
             <div className="min-w-0">
               <p className="text-sm font-medium text-gray-600">
                 <span className="text-[#8a542d]">{KIND_LABELS[offer.kind] || offer.kind}</span>
@@ -698,8 +705,8 @@ function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite }) {
 
           <DetailSection title="Stack">
             <div className="flex flex-wrap gap-2">
-              {offer.skills.length > 0 ? (
-                offer.skills.map((skill) => (
+              {offer.extractedSkills.length > 0 ? (
+                offer.extractedSkills.map((skill) => (
                   <span
                     key={skill}
                     className="rounded-md border border-gray-200 bg-[#e7e5df] px-2.5 py-1.5 text-sm font-medium text-black"
@@ -761,27 +768,27 @@ function DetailSection({ title, children }) {
   )
 }
 
-function CompanyMark({ offer, large = false }) {
-  const initials =
-    offer.companyInitials ||
-    offer.company
-      .split(' ')
-      .map((word) => word[0])
-      .join('')
-      .slice(0, 2)
-      .toLocaleUpperCase('fr')
+// function CompanyMark({ offer, large = false }) {
+//   const initials =
+//     offer.companyInitials ||
+//     offer.company
+//       .split(' ')
+//       .map((word) => word[0])
+//       .join('')
+//       .slice(0, 2)
+//       .toLocaleUpperCase('fr')
 
-  return (
-    <span
-      className={`flex shrink-0 items-center justify-center rounded-lg border border-[#e7d8cc] bg-[#f4eee9] font-semibold text-[#5d3c25] ${
-        large ? 'h-14 w-14 text-base' : 'h-11 w-11 text-xs'
-      }`}
-      aria-hidden="true"
-    >
-      {initials}
-    </span>
-  )
-}
+//   return (
+//     <span
+//       className={`flex shrink-0 items-center justify-center rounded-lg border border-[#e7d8cc] bg-[#f4eee9] font-semibold text-[#5d3c25] ${
+//         large ? 'h-14 w-14 text-base' : 'h-11 w-11 text-xs'
+//       }`}
+//       aria-hidden="true"
+//     >
+//       {initials}
+//     </span>
+//   )
+// }
 
 function OffersLoading() {
   return (
@@ -839,10 +846,10 @@ function formatSalary(offer) {
   const formatter = new Intl.NumberFormat('fr-FR')
   const currency = offer.salaryCurrency || 'EUR'
   if (offer.salaryMin && offer.salaryMax) {
-    return `${formatter.format(offer.salaryMin)}–${formatter.format(offer.salaryMax)} ${currency}`
+    return `${formatter.format(offer.salaryMin)}K–${formatter.format(offer.salaryMax)}K ${currency}`
   }
 
-  return `${formatter.format(offer.salaryMin || offer.salaryMax)} ${currency}`
+  return `${formatter.format(offer.salaryMin  || offer.salaryMax)} ${currency}`
 }
 
 function formatPublishedDate(date) {

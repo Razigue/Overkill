@@ -8,11 +8,11 @@ export async function listOffers(filters = {}) {
   const apiUrl = 'http://localhost:8000'
   const queryParams = new URLSearchParams()
 
-  Object.entries(filters).forEach(([name, value]) => {
-    if (value !== '' && value !== null && value !== undefined) {
-      queryParams.set(name, value)
-    }
-  })
+  // Object.entries(filters).forEach(([name, value]) => {
+  //   if (value !== '' && value !== null && value !== undefined) {
+  //     queryParams.set(name, value)
+  //   }
+  // })
 
   const response = await fetch(`${apiUrl}/api/offers`, {
     method: 'GET',
@@ -28,13 +28,13 @@ export async function listOffers(filters = {}) {
   }
 
   const data = await response.json()
-  console.log(data[0])
-
+  //data.map((item) => console.log(item))
   // TODO API FORMAT :
   // Adapter cette ligne uniquement si Symfony enveloppe les résultats
   // dans une propriété `offers` ou `data`.
-  return Array.isArray(data) ? data : data.offers || data.data || []
+  //return Array.isArray(data) ? data : data.offers || data.data || []
   
+console.log(data[1].extractedSkills)
 
   // void filters // À retirer lorsque l'exemple d'appel ci-dessus sera activé.
   return data
