@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Footer from '../components/Footer'
-import PublicHeader from '../components/PublicHeader'
+import Header from '../components/Header'
 import Background from '../assets/images/Overkill_Background.png'
 
 function Accueil() {
+  const navigate = useNavigate()
   const [searchForm, setSearchForm] = useState({
     query: '',
     location: '',
@@ -19,15 +21,34 @@ function Accueil() {
     }))
   }
 
+  const clearSearchField = (name, inputId) => {
+    setSearchForm((currentForm) => ({
+      ...currentForm,
+      [name]: '',
+    }))
+    window.requestAnimationFrame(() => document.getElementById(inputId)?.focus())
+  }
+
   const handleSearchSubmit = (event) => {
     event.preventDefault()
-    // TODO: Brancher ici l'appel API de recherche d'offres.
-    console.log('Recherche offres', searchForm)
+
+    const searchParams = new URLSearchParams()
+    const normalizedSearch = {
+      q: searchForm.query.trim(),
+      city: searchForm.location.trim(),
+      contract: searchForm.contractType,
+    }
+
+    Object.entries(normalizedSearch).forEach(([name, value]) => {
+      if (value) searchParams.set(name, value)
+    })
+
+    navigate(`/feed${searchParams.size > 0 ? `?${searchParams.toString()}` : ''}`)
   }
 
   return (
     <div className="min-h-screen bg-[#faf7f4] text-[#171717]">
-      <PublicHeader />
+      <Header />
 
       <main>
         <section
@@ -53,29 +74,61 @@ function Accueil() {
               </div>
 
               <form className="mt-6 space-y-4" onSubmit={handleSearchSubmit}>
-                <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-gray-700">Recherche</span>
-                  <input
-                    type="text"
-                    name="query"
-                    value={searchForm.query}
-                    onChange={handleSearchChange}
-                    placeholder="Métier, entreprise, compétence"
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:bg-white focus:ring-4 focus:ring-[#d2915c]/10"
-                  />
-                </label>
+                <div>
+                  <label htmlFor="home-search-query" className="mb-2 block text-sm font-semibold text-gray-700">
+                    Recherche
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="home-search-query"
+                      type="text"
+                      name="query"
+                      value={searchForm.query}
+                      onChange={handleSearchChange}
+                      placeholder="Métier, entreprise, compétence"
+                      maxLength={120}
+                      className="w-full rounded-xl border border-gray-200 py-3 pl-4 pr-12 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:bg-white focus:ring-4 focus:ring-[#d2915c]/10"
+                    />
+                    {searchForm.query && (
+                      <button
+                        type="button"
+                        onClick={() => clearSearchField('query', 'home-search-query')}
+                        aria-label="Effacer la recherche"
+                        className="absolute inset-y-0 right-1 my-auto flex h-9 w-9 items-center justify-center rounded-lg text-xl leading-none text-gray-500 transition hover:bg-[#f1ebe6] hover:text-black focus:outline-none focus-visible:ring-3 focus-visible:ring-[#d2915c]/25"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                </div>
 
-                <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-gray-700">Localisation</span>
-                  <input
-                    type="text"
-                    name="location"
-                    value={searchForm.location}
-                    onChange={handleSearchChange}
-                    placeholder="Ville ou télétravail"
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:bg-white focus:ring-4 focus:ring-[#d2915c]/10"
-                  />
-                </label>
+                <div>
+                  <label htmlFor="home-search-location" className="mb-2 block text-sm font-semibold text-gray-700">
+                    Localisation
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="home-search-location"
+                      type="text"
+                      name="location"
+                      value={searchForm.location}
+                      onChange={handleSearchChange}
+                      placeholder="Ville ou télétravail"
+                      maxLength={100}
+                      className="w-full rounded-xl border border-gray-200 py-3 pl-4 pr-12 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:bg-white focus:ring-4 focus:ring-[#d2915c]/10"
+                    />
+                    {searchForm.location && (
+                      <button
+                        type="button"
+                        onClick={() => clearSearchField('location', 'home-search-location')}
+                        aria-label="Effacer la localisation"
+                        className="absolute inset-y-0 right-1 my-auto flex h-9 w-9 items-center justify-center rounded-lg text-xl leading-none text-gray-500 transition hover:bg-[#f1ebe6] hover:text-black focus:outline-none focus-visible:ring-3 focus-visible:ring-[#d2915c]/25"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                </div>
 
                 <label className="block">
                   <span className="mb-2 block text-sm font-semibold text-gray-700">Type de contrat</span>
@@ -88,8 +141,8 @@ function Accueil() {
                     <option value="">Tous les contrats</option>
                     <option value="stage">Stage</option>
                     <option value="alternance">Alternance</option>
-                    <option value="cdi">CDI</option>
-                    <option value="cdd">CDD</option>
+                    <option value="CDI">CDI</option>
+                    <option value="CDD">CDD</option>
                     <option value="freelance">Freelance</option>
                   </select>
                 </label>
