@@ -234,7 +234,6 @@ class OffersControllerTest extends WebTestCase
         $offer->setSourceId($source);
         $offer->addCategoryId($category);
         $offer->setCity('Lyon');
-        $offer->setCountry('FR');
         $offer->setIsRemote(['full']);
         $offer->setPublishedAt(new \DateTimeImmutable());
         $offer->setStartsAt(new \DateTimeImmutable());
@@ -283,7 +282,6 @@ class OffersControllerTest extends WebTestCase
         $offer->setSourceId($source);
         $offer->addCategoryId($category);
         $offer->setCity('Lille');
-        $offer->setCountry('FR');
         $offer->setIsRemote(null);
         $offer->setPublishedAt(new \DateTimeImmutable());
         $offer->setStartsAt(new \DateTimeImmutable());
