@@ -42,7 +42,7 @@ class OffersControllerTest extends WebTestCase
         $em->persist($this->testUser);
         $em->flush();
 
-        // 2. Génération du token JWT et configuration de l'en-tête Authorization global
+        // 2. Génération du token JWT
         $token = null;
         if ($container->has(JWTTokenManagerInterface::class)) {
             $token = $container->get(JWTTokenManagerInterface::class)->create($this->testUser);
@@ -57,10 +57,6 @@ class OffersControllerTest extends WebTestCase
         $this->client->loginUser($this->testUser);
     }
 
-    /**
-     * Helper pour préparer la base de données avec des entités de dépendance (Company, Source, Category)
-     * On génère un nom unique à chaque appel pour éviter les contraintes UNIQUE SQL.
-     */
     private function createDependencies(): array
     {
         $container = static::getContainer();
@@ -132,7 +128,7 @@ class OffersControllerTest extends WebTestCase
             'category_id' => [$category->getId()],
             'city' => 'Paris',
             'country' => 'FR',
-            'isRemote' => ['full'],
+            'isRemote' => 'full', // String au lieu d'un tableau ['full']
             'salaryMin' => 45000,
             'salaryMax' => 55000,
             'salaryCurrency' => 'EUR',
@@ -158,10 +154,7 @@ class OffersControllerTest extends WebTestCase
         $this->assertResponseStatusCodeSame(201);
         $responseData = json_decode($this->client->getResponse()->getContent(), true);
 
-        // Extraire la structure principale
         $offerData = $responseData['offer'] ?? $responseData['data'] ?? $responseData;
-
-        // Vérifier la présence du titre
         $title = $offerData['title'] ?? null;
         $this->assertSame('Développeur PHP / Symfony', $title);
     }
@@ -234,7 +227,7 @@ class OffersControllerTest extends WebTestCase
         $offer->setSourceId($source);
         $offer->addCategoryId($category);
         $offer->setCity('Lyon');
-        $offer->setIsRemote(['full']);
+        $offer->setIsRemote('full'); // String fixée ici
         $offer->setPublishedAt(new \DateTimeImmutable());
         $offer->setStartsAt(new \DateTimeImmutable());
         $offer->setCreatedAt(new \DateTimeImmutable());
@@ -295,11 +288,9 @@ class OffersControllerTest extends WebTestCase
 
         $offerId = $offer->getId();
 
-        // 1ère requête : Suppression de l'offre
         $this->client->request('DELETE', '/api/offers/' . $offerId);
         $this->assertResponseStatusCodeSame(204);
 
-        // 2ème requête : Vérification que l'offre est bien supprimée (404)
         $this->client->request('GET', '/api/offers/' . $offerId);
         $this->assertResponseStatusCodeSame(404);
     }
