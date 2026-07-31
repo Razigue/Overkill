@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Footer from '../components/Footer'
-import PublicHeader from '../components/PublicHeader'
+import Header from '../components/Header'
 import { listOffers, offerFilterOptions } from '../services/offers'
 import chevronDown from '../assets/icons/chevron-down.svg'
 import searchIcon from '../assets/icons/search.svg'
@@ -206,7 +206,7 @@ function Feed() {
   return (
     <div className="min-h-screen bg-[#faf7f4] text-[#171717]">
       <div id="feed-page-content" onClick={handlePageClick}>
-        <PublicHeader />
+        <Header />
 
         <main className="min-h-[calc(100vh-5rem)]">
           <section className="border-b border-black/10 bg-white">
