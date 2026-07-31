@@ -78,7 +78,7 @@ class OffersRepository extends ServiceEntityRepository
                 ->setParameter('category', mb_strtolower($filters['category']));
         }
 
-        $perPage = 3;
+        $perPage = 10;
 
         return new Paginator(
             $qb->setFirstResult(($page - 1) * $perPage)

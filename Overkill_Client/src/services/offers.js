@@ -1,4 +1,4 @@
-export async function listOffers(filters = {}) {
+export async function listOffers(filters = {},page) {
   // TODO API (GET /api/offers) :
   // Remplacer le `return []` par l'appel au backend Symfony.
   // Le backend se charge de lire Neon et de normaliser les offres provenant
@@ -6,6 +6,7 @@ export async function listOffers(filters = {}) {
 
   
   const apiUrl = 'http://localhost:8000'
+  const currentPage = page
   const queryParams = new URLSearchParams()
 
   // Object.entries(filters).forEach(([name, value]) => {
@@ -14,7 +15,7 @@ export async function listOffers(filters = {}) {
   //   }
   // })
 
-  const response = await fetch(`${apiUrl}/api/offers`, {
+  const response = await fetch(`${apiUrl}/api/offers?page=${currentPage}`, {
     method: 'GET',
     headers: {
       Accept: 'application/json',
@@ -34,10 +35,10 @@ export async function listOffers(filters = {}) {
   // dans une propriété `offers` ou `data`.
   //return Array.isArray(data) ? data : data.offers || data.data || []
   
-console.log(data[0])
+console.log(data)
 
   // void filters // À retirer lorsque l'exemple d'appel ci-dessus sera activé.
-  return data
+  return data.items
 }
 
 export const offerFilterOptions = {

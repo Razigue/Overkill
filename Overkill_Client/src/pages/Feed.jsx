@@ -49,6 +49,7 @@ function Feed() {
   })
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
   const [status, setStatus] = useState('loading')
+  const [page, setPage] = useState(1)
   const lastFocusedElement = useRef(null)
   const filterButtonRef = useRef(null)
   const filterDialogRef = useRef(null)
@@ -67,7 +68,7 @@ function Feed() {
 
     // TODO API : cet appel utilisera GET /api/offers une fois `listOffers`
     // branché dans `src/services/offers.js`.
-    listOffers(filters)
+    listOffers(filters, page)
       .then((nextOffers) => {
         if (!isCurrentRequest) return
         setOffers(nextOffers)
@@ -125,6 +126,8 @@ function Feed() {
       document.body.style.overflow = ''
     }
   }, [isFiltersOpen, isMobile, selectedOffer])
+
+
 
   useEffect(() => {
     if (!isFiltersOpen) return undefined
@@ -209,7 +212,7 @@ function Feed() {
   }
 
   console.log(offers)
-  console.log(status)
+  console.log(page)
 
   return (
     <div className="min-h-screen bg-[#faf7f4] text-[#171717]">
@@ -331,6 +334,8 @@ function Feed() {
                 </div>
               )}
             </div>
+            <div><button onClick={() => setPage(prevPage => Math.max(1, prevPage - 1))}>Précédent</button></div>
+            <div><button onClick={() => setPage(prevPage => Math.max(19, prevPage + 1))}>Suivant</button></div>
           </section>
         </main>
 
@@ -603,9 +608,9 @@ function OfferCard({ offer, isSelected, isFavorite, onSelect, onFavorite }) {
               </span>
             </div>
 
-            <p className="mt-3 line-clamp-2 max-w-[68ch] text-sm leading-6 text-gray-600">
+            <span className="mt-3 line-clamp-2 max-w-[68ch] text-sm leading-6 text-gray-600">
               <ReactMarkdown>{offer.description}</ReactMarkdown>
-            </p>
+            </span>
 
             <div className="mt-4 flex flex-wrap items-end justify-between gap-3 border-t border-gray-100 pt-3">
               <p className="text-xs leading-5 text-gray-500">
@@ -724,11 +729,11 @@ function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite }) {
 
           <DetailSection title="Résumé de l’offre">
             
-            <p className="max-w-[70ch] whitespace-pre-line text-base leading-8 text-gray-700">
-              <span>
+            <span className="max-w-[70ch] whitespace-pre-line text-base leading-8 text-gray-700">
+              
               <ReactMarkdown>{offer.description}</ReactMarkdown>   
-              </span>
-            </p>
+              
+            </span>
             
           </DetailSection>
 
