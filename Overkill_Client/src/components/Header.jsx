@@ -102,11 +102,25 @@ function Header({ user: providedUser, onLogout }) {
                         <p className="truncate text-sm font-bold text-gray-900">{accountLabel}</p>
                         {currentUser.email && <p className="mt-1 truncate text-xs text-gray-500">{currentUser.email}</p>}
                       </div>
+                      <nav className="border-b border-gray-100 p-2 md:hidden" aria-label="Navigation mobile">
+                        <a href="/" onClick={() => setIsAccountMenuOpen(false)} className="block min-h-11 rounded-lg px-3 py-3 text-sm font-semibold text-gray-700 transition hover:bg-[#faf7f4] hover:text-[#d2915c] focus:outline-none focus:ring-2 focus:ring-[#d2915c]">
+                          Accueil
+                        </a>
+                        <a href="/feed" onClick={() => setIsAccountMenuOpen(false)} className="block min-h-11 rounded-lg px-3 py-3 text-sm font-semibold text-gray-700 transition hover:bg-[#faf7f4] hover:text-[#d2915c] focus:outline-none focus:ring-2 focus:ring-[#d2915c]">
+                          Offres
+                        </a>
+                        <a href="/ressources" onClick={() => setIsAccountMenuOpen(false)} className="block min-h-11 rounded-lg px-3 py-3 text-sm font-semibold text-gray-700 transition hover:bg-[#faf7f4] hover:text-[#d2915c] focus:outline-none focus:ring-2 focus:ring-[#d2915c]">
+                          Ressources
+                        </a>
+                        <a href="/contact" onClick={() => setIsAccountMenuOpen(false)} className="block min-h-11 rounded-lg px-3 py-3 text-sm font-semibold text-gray-700 transition hover:bg-[#faf7f4] hover:text-[#d2915c] focus:outline-none focus:ring-2 focus:ring-[#d2915c]">
+                          Contact
+                        </a>
+                      </nav>
                       <div className="p-2">
-                        <a href="/profil" onClick={() => setIsAccountMenuOpen(false)} className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-[#faf7f4] hover:text-[#d2915c]">
+                        <a href="/profil" onClick={() => setIsAccountMenuOpen(false)} className="block min-h-11 rounded-lg px-3 py-3 text-sm font-semibold text-gray-700 transition hover:bg-[#faf7f4] hover:text-[#d2915c] focus:outline-none focus:ring-2 focus:ring-[#d2915c]">
                           Mon profil
                         </a>
-                        <button type="button" onClick={handleLogout} className="w-full cursor-pointer rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-red-700 transition hover:bg-red-50 hover:text-red-800 focus:outline-none focus:ring-2 focus:ring-red-300">
+                        <button type="button" onClick={handleLogout} className="min-h-11 w-full cursor-pointer rounded-lg px-3 py-3 text-left text-sm font-semibold text-red-700 transition hover:bg-red-50 hover:text-red-800 focus:outline-none focus:ring-2 focus:ring-red-300">
                           Déconnexion
                         </button>
                       </div>
