@@ -1,6 +1,7 @@
 import PublicHeader from '../components/PublicHeader'
 import Footer from '../components/Footer'
 import Background from '../assets/images/Overkill_Background.png'
+import useActiveSection from '../hooks/useActiveSection'
 
 
 const steps = [
@@ -89,6 +90,13 @@ const steps = [
 ]
 
 function GuideOffres() {
+  const [activeSection, setActiveSection] = useActiveSection(steps)
+  const tocLinkClass = (id) => `block border-l-2 py-2 pl-4 text-sm leading-5 transition-colors ${
+    activeSection === id
+      ? 'border-[#d2915c] bg-[#ebc09d]/40 font-bold text-black'
+      : 'border-transparent font-medium text-gray-600 hover:border-[#d2915c] hover:bg-[#ebc09d]/25 hover:text-black'
+  }`
+
   return (
     <div className="flex min-h-screen flex-col bg-[#fcfbfa] text-[#171717]">
       <PublicHeader />
@@ -116,15 +124,33 @@ function GuideOffres() {
         <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
           <div className="grid gap-12 lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-16">
             <aside className="lg:sticky lg:top-8 lg:self-start">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#d2915c]">Dans ce guide</p>
-              <nav className="mt-5 border-l border-black/15" aria-label="Sommaire du guide">
-                {steps.map((step) => (
-                  <a key={step.id} href={`#${step.id}`} className="block border-l-2 border-transparent py-2 pl-4 text-sm font-medium text-gray-600 transition hover:border-[#d2915c] hover:text-black">
-                    {step.number}. {step.title}
-                  </a>
-                ))}
+              <details className="group border-y border-black/15 py-4 lg:hidden">
+                <summary className="flex cursor-pointer list-none items-center justify-between font-black [&::-webkit-details-marker]:hidden">
+                  Dans ce guide
+                  <span className="text-xl font-normal text-[#a65f2e]" aria-hidden="true">
+                    <span className="group-open:hidden">+</span>
+                    <span className="hidden group-open:inline">−</span>
+                  </span>
+                </summary>
+                <nav className="mt-3 border-l border-black/20" aria-label="Sommaire mobile du guide des offres">
+                  {steps.map((step) => (
+                    <a key={step.id} href={`#${step.id}`} aria-current={activeSection === step.id ? 'location' : undefined} onClick={() => setActiveSection(step.id)} className={tocLinkClass(step.id)}>
+                      {step.number}. {step.title}
+                    </a>
+                  ))}
+                </nav>
+              </details>
+              <nav className="hidden lg:block" aria-label="Sommaire du guide des offres">
+                <p className="text-sm font-black text-black">Dans ce guide</p>
+                <div className="mt-4 border-l border-black/20">
+                  {steps.map((step) => (
+                    <a key={step.id} href={`#${step.id}`} aria-current={activeSection === step.id ? 'location' : undefined} onClick={() => setActiveSection(step.id)} className={tocLinkClass(step.id)}>
+                      {step.number}. {step.title}
+                    </a>
+                  ))}
+                </div>
               </nav>
-              <div className="mt-8 border-t border-black/10 pt-6 text-sm leading-6 text-gray-600">
+              <div className="mt-8 hidden border-t border-black/10 pt-6 text-sm leading-6 text-gray-600 lg:block">
                 <p className="font-bold text-black">Le principe</p>
                 <p className="mt-2">Mieux vaut des candidatures cohérentes et suivies que des envois en masse.</p>
               </div>
