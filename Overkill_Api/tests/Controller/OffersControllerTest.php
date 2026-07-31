@@ -132,7 +132,7 @@ class OffersControllerTest extends WebTestCase
             'category_id' => [$category->getId()],
             'city' => 'Paris',
             'country' => 'FR',
-            'isRemote' => ['full'],
+            'isRemote' => null, // null est compatible avec le DTO (array|null) ET l'entité (?string)
             'salaryMin' => 45000,
             'salaryMax' => 55000,
             'salaryCurrency' => 'EUR',
@@ -158,7 +158,6 @@ class OffersControllerTest extends WebTestCase
         $this->assertResponseStatusCodeSame(201);
         $responseData = json_decode($this->client->getResponse()->getContent(), true);
 
-        // Extraire la donnée quel que soit le format de réponse
         $title = $responseData['title'] ?? $responseData['offer']['title'] ?? $responseData['data']['title'] ?? null;
         $this->assertSame('Développeur PHP / Symfony', $title);
     }
@@ -231,16 +230,7 @@ class OffersControllerTest extends WebTestCase
         $offer->setSourceId($source);
         $offer->addCategoryId($category);
         $offer->setCity('Lyon');
-        
-        // Adapte la valeur selon le type attendu par l'entité Offers
-        if (method_exists($offer, 'setIsRemote')) {
-            try {
-                $offer->setIsRemote('full');
-            } catch (\TypeError $e) {
-                $offer->setIsRemote(['full']);
-            }
-        }
-
+        $offer->setIsRemote('full');
         $offer->setPublishedAt(new \DateTimeImmutable());
         $offer->setStartsAt(new \DateTimeImmutable());
         $offer->setCreatedAt(new \DateTimeImmutable());
