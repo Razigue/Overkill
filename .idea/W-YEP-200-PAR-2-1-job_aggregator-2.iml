@@ -132,6 +132,10 @@
       <excludeFolder url="file://$MODULE_DIR$/Overkill_Api/vendor/twig/extra-bundle" />
       <excludeFolder url="file://$MODULE_DIR$/Overkill_Api/vendor/twig/twig" />
       <excludeFolder url="file://$MODULE_DIR$/Overkill_Api/vendor/webmozart/assert" />
+      <excludeFolder url="file://$MODULE_DIR$/Overkill_Api/vendor/lcobucci/jwt" />
+      <excludeFolder url="file://$MODULE_DIR$/Overkill_Api/vendor/lexik/jwt-authentication-bundle" />
+      <excludeFolder url="file://$MODULE_DIR$/Overkill_Api/vendor/nelmio/cors-bundle" />
+      <excludeFolder url="file://$MODULE_DIR$/Overkill_Api/vendor/symfony/rate-limiter" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
