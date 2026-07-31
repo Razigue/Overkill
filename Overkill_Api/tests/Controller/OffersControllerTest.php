@@ -158,8 +158,8 @@ class OffersControllerTest extends WebTestCase
         $this->assertResponseStatusCodeSame(201);
         $responseData = json_decode($this->client->getResponse()->getContent(), true);
 
-        $offerData = $responseData['offer'] ?? $responseData['data'] ?? $responseData;
-        $title = $offerData['title'] ?? null;
+        // Extraire la donnée quel que soit le format de réponse
+        $title = $responseData['title'] ?? $responseData['offer']['title'] ?? $responseData['data']['title'] ?? null;
         $this->assertSame('Développeur PHP / Symfony', $title);
     }
 
@@ -231,7 +231,16 @@ class OffersControllerTest extends WebTestCase
         $offer->setSourceId($source);
         $offer->addCategoryId($category);
         $offer->setCity('Lyon');
-        $offer->setIsRemote('full');
+        
+        // Adapte la valeur selon le type attendu par l'entité Offers
+        if (method_exists($offer, 'setIsRemote')) {
+            try {
+                $offer->setIsRemote('full');
+            } catch (\TypeError $e) {
+                $offer->setIsRemote(['full']);
+            }
+        }
+
         $offer->setPublishedAt(new \DateTimeImmutable());
         $offer->setStartsAt(new \DateTimeImmutable());
         $offer->setCreatedAt(new \DateTimeImmutable());
@@ -246,8 +255,8 @@ class OffersControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
         $responseData = json_decode($this->client->getResponse()->getContent(), true);
-        $offerData = $responseData['offer'] ?? $responseData['data'] ?? $responseData;
-        $this->assertSame('Offre de test ID', $offerData['title'] ?? null);
+        $title = $responseData['title'] ?? $responseData['offer']['title'] ?? $responseData['data']['title'] ?? null;
+        $this->assertSame('Offre de test ID', $title);
     }
 
     // ==========================================
