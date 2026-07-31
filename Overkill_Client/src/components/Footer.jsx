@@ -21,11 +21,6 @@ function Footer() {
             </h2>
             <ul className="mt-4 space-y-3">
               <li>
-                <a href="/communauté" className="text-sm font-medium text-gray-600 transition hover:text-black">
-                  Communauté
-                </a>
-              </li>
-              <li>
                 <a href="/ressources" className="text-sm font-medium text-gray-600 transition hover:text-black">
                   Ressources
                 </a>
@@ -42,6 +37,7 @@ function Footer() {
         <div className="mt-10 flex flex-col gap-3 border-t border-gray-200 pt-6 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between">
           <p>&copy; 2026 Overkill. Tous droits réservés.</p>
           <div className="flex gap-5">
+            <a href="/legal" className="transition hover:text-black">Mentions légales</a>
             <a href="/privacy" className="transition hover:text-black">Confidentialité</a>
             <a href="/terms" className="transition hover:text-black">Conditions</a>
           </div>

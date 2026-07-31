@@ -6,6 +6,9 @@ import Ressources from './pages/Ressources.jsx'
 import GuideOffres from './pages/GuideOffres.jsx'
 import GuideCv from './pages/GuideCv.jsx'
 import Feed from './pages/Feed.jsx'
+import Legal from './pages/Legal.jsx'
+import Privacy from './pages/Privacy.jsx'
+import Terms from './pages/Terms.jsx'
 
 function App() {
   return (
@@ -18,6 +21,9 @@ function App() {
         <Route path="/ressources/offres" element={<GuideOffres />} />
         <Route path="/ressources/cv" element={<GuideCv />} />
         <Route path="/feed" element={<Feed />} />
+        <Route path="/legal" element={<Legal />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
       </Routes>
     </BrowserRouter>
   )
