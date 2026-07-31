@@ -1,4 +1,4 @@
-import PublicHeader from '../components/PublicHeader'
+import Header from '../components/Header'
 import Footer from '../components/Footer'
 import Background from '../assets/images/Overkill_Background.png'
 import useActiveSection from '../hooks/useActiveSection'
@@ -77,7 +77,7 @@ function Legal() {
 
   return (
     <div className="flex min-h-screen flex-col bg-[#fcfbfa] text-[#171717]">
-      <PublicHeader />
+      <Header />
       <main className="flex-1">
         <section className="relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${Background})` }}>
           <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">

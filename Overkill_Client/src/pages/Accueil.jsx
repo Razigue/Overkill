@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Footer from '../components/Footer'
-import PublicHeader from '../components/PublicHeader'
+import Header from '../components/Header'
 import Background from '../assets/images/Overkill_Background.png'
 
 function Accueil() {
@@ -27,7 +27,7 @@ function Accueil() {
 
   return (
     <div className="min-h-screen bg-[#faf7f4] text-[#171717]">
-      <PublicHeader />
+      <Header />
 
       <main>
         <section

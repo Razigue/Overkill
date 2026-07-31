@@ -2,11 +2,18 @@ import { useEffect, useRef, useState } from 'react'
 import logo from '../assets/images/Overkill_Logo.png'
 import chevronDown from '../assets/icons/chevron-down.svg'
 import profileIcon from '../assets/icons/user.svg'
+import AuthOverlay from './AuthOverlay'
+import Toast from './Toast'
 
-function Header({ user, onLogin, onRegister, onLogout }) {
-  const currentUser = user || JSON.parse(localStorage.getItem('user') || 'null')
+function Header({ user: providedUser, onLogout }) {
+  const [user, setUser] = useState(() => (
+    providedUser || JSON.parse(localStorage.getItem('user') || 'null')
+  ))
+  const [authMode, setAuthMode] = useState(null)
+  const [notification, setNotification] = useState(null)
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
   const accountMenuRef = useRef(null)
+  const currentUser = providedUser || user
   const firstName = currentUser?.firstName || currentUser?.firstname
   const accountLabel = firstName || 'Mon compte'
 
@@ -31,10 +38,15 @@ function Header({ user, onLogin, onRegister, onLogout }) {
 
   const handleLogout = () => {
     setIsAccountMenuOpen(false)
-    onLogout()
+    localStorage.removeItem('user')
+    localStorage.removeItem('token')
+    setUser(null)
+    setNotification({ type: 'info', message: 'Vous êtes déconnecté.' })
+    onLogout?.()
   }
 
   return (
+    <>
       <header className="w-full bg-white border-b border-gray-200">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <a href="/" className="flex items-center" aria-label="Overkill accueil">
@@ -106,14 +118,14 @@ function Header({ user, onLogin, onRegister, onLogout }) {
                   {/* Utilisateur déconnecté */}
                   <button
                       type="button"
-                      onClick={onLogin}
+                      onClick={() => setAuthMode('login')}
                       className="cursor-pointer rounded-md border-2 border-black bg-white px-4 py-2 text-sm font-semibold text-black transition hover:-translate-y-0.5 hover:shadow-md"
                   >
                     Se connecter
                   </button>
                   <button
                       type="button"
-                      onClick={onRegister}
+                      onClick={() => setAuthMode('register')}
                       className="cursor-pointer rounded-md border-2 border-black bg-[#d2915c] px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-md"
                   >
                     S'inscrire
@@ -123,6 +135,20 @@ function Header({ user, onLogin, onRegister, onLogout }) {
           </div>
         </div>
       </header>
+      {authMode && (
+        <AuthOverlay
+          mode={authMode}
+          onClose={() => setAuthMode(null)}
+          onAuthenticated={setUser}
+          onSwitchMode={setAuthMode}
+          onNotify={setNotification}
+        />
+      )}
+      <Toast
+        notification={notification}
+        onDismiss={() => setNotification(null)}
+      />
+    </>
   )
 }
 
