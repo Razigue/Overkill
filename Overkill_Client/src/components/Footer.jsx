@@ -21,11 +21,6 @@ function Footer() {
             </h2>
             <ul className="mt-4 space-y-3">
               <li>
-                <a href="/communauté" className="text-sm font-medium text-gray-600 transition hover:text-black">
-                  Communauté
-                </a>
-              </li>
-              <li>
                 <a href="/ressources" className="text-sm font-medium text-gray-600 transition hover:text-black">
                   Ressources
                 </a>
