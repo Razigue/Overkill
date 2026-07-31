@@ -50,6 +50,7 @@ function Feed() {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
   const [status, setStatus] = useState('loading')
   const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 0 })
   const lastFocusedElement = useRef(null)
   const filterButtonRef = useRef(null)
   const filterDialogRef = useRef(null)
@@ -65,13 +66,11 @@ function Feed() {
   useEffect(() => {
     let isCurrentRequest = true
 
-
-    // TODO API : cet appel utilisera GET /api/offers une fois `listOffers`
-    // branché dans `src/services/offers.js`.
     listOffers(filters, page)
-      .then((nextOffers) => {
+      .then(({ items: nextOffers, pagination: nextPagination }) => {
         if (!isCurrentRequest) return
         setOffers(nextOffers)
+        setPagination(nextPagination)
         setStatus('success')
         setSelectedOffer((currentOffer) => {
           if (!currentOffer) return null
@@ -85,7 +84,7 @@ function Feed() {
     return () => {
       isCurrentRequest = false
     }
-  }, [filters])
+  }, [filters, page])
 
   useEffect(() => {
     localStorage.setItem('overkill-favorites', JSON.stringify(favorites))
@@ -166,10 +165,14 @@ function Feed() {
 
   const submitSearch = (event) => {
     event.preventDefault()
+    setStatus('loading')
+    setPage(1)
     setFilters((currentFilters) => ({ ...currentFilters, ...draftSearch }))
   }
 
   const updateFilter = (name, value) => {
+    setStatus('loading')
+    setPage(1)
     setFilters((currentFilters) => ({
       ...currentFilters,
       [name]: value,
@@ -177,8 +180,19 @@ function Feed() {
   }
 
   const resetFilters = () => {
+    setStatus('loading')
+    setPage(1)
     setDraftSearch({ q: '', city: '' })
     setFilters(EMPTY_FILTERS)
+  }
+
+  const changePage = (nextPage) => {
+    if (status === 'loading' || nextPage < 1 || nextPage > pagination.totalPages) return
+
+    setSelectedOffer(null)
+    setStatus('loading')
+    setPage(nextPage)
+    document.getElementById('feed-results')?.scrollIntoView({ block: 'start' })
   }
 
   const toggleFavorite = (offerId) => {
@@ -210,9 +224,6 @@ function Feed() {
     if (!selectedOffer || event.target.closest('[data-offer-card]')) return
     closeOffer(false)
   }
-
-  console.log(offers)
-  console.log(page)
 
   return (
     <div className="min-h-screen bg-[#faf7f4] text-[#171717]">
@@ -268,14 +279,14 @@ function Feed() {
                   activeCount={activeFiltersCount}
                   onChange={updateFilter}
                   onTextChange={(name, value) =>
-                    setFilters((currentFilters) => ({ ...currentFilters, [name]: value }))
+                    updateFilter(name, value)
                   }
                   onReset={resetFilters}
                 />
               </div>
             </aside>
 
-            <div className="min-w-0">
+            <div id="feed-results" className="min-w-0 scroll-mt-4">
               <div className="mb-4 flex items-center justify-between gap-4">
                 <div className="flex items-baseline gap-3">
                   <h2 className="text-xl font-semibold text-black">Offres récentes</h2>
@@ -308,7 +319,10 @@ function Feed() {
                   title="Impossible de charger les offres"
                   description="Vérifie la connexion au serveur puis réessaie."
                   actionLabel="Réessayer"
-                  onAction={() => setFilters((currentFilters) => ({ ...currentFilters }))}
+                  onAction={() => {
+                    setStatus('loading')
+                    setFilters((currentFilters) => ({ ...currentFilters }))
+                  }}
                 />
               )}
               {status === 'success' && offers.length === 0 && (
@@ -333,9 +347,33 @@ function Feed() {
                   ))}
                 </div>
               )}
+              {status === 'success' && pagination.totalPages > 1 && (
+                <nav
+                  className="mt-6 flex items-center justify-between gap-3 border-t border-black/10 pt-5"
+                  aria-label="Pagination des offres"
+                >
+                  <button
+                    type="button"
+                    onClick={() => changePage(page - 1)}
+                    disabled={page <= 1}
+                    className="min-h-11 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-black transition-colors hover:border-[#a96531] hover:bg-[#a96531] hover:text-white focus:outline-none focus:ring-3 focus:ring-[#d2915c]/20 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-gray-300 disabled:hover:bg-white disabled:hover:text-black"
+                  >
+                    Précédent
+                  </button>
+                  <span className="text-sm font-medium text-gray-600" aria-live="polite">
+                    Page {page} sur {pagination.totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => changePage(page + 1)}
+                    disabled={page >= pagination.totalPages}
+                    className="min-h-11 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-black transition-colors hover:border-[#a96531] hover:bg-[#a96531] hover:text-white focus:outline-none focus:ring-3 focus:ring-[#d2915c]/20 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-gray-300 disabled:hover:bg-white disabled:hover:text-black"
+                  >
+                    Suivant
+                  </button>
+                </nav>
+              )}
             </div>
-            <div><button onClick={() => setPage(prevPage => Math.max(1, prevPage - 1))}>Précédent</button></div>
-            <div><button onClick={() => setPage(prevPage => Math.max(19, prevPage + 1))}>Suivant</button></div>
           </section>
         </main>
 
@@ -362,7 +400,7 @@ function Feed() {
               activeCount={activeFiltersCount}
               onChange={updateFilter}
               onTextChange={(name, value) =>
-                setFilters((currentFilters) => ({ ...currentFilters, [name]: value }))
+                updateFilter(name, value)
               }
               onReset={resetFilters}
               onClose={() => {
