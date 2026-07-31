@@ -46,7 +46,7 @@ final class OffersController extends AbstractController
                 'pagination' => [
                     'page'       => $page,
                     'total'      => $total,
-                    'totalPages' => (int) ceil($total / 3),
+                    'totalPages' => (int) ceil($total / 10),
                 ],
             ],
             Response::HTTP_OK,

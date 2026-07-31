@@ -63,6 +63,8 @@ function Feed() {
   })
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
   const [status, setStatus] = useState('loading')
+  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 0 })
   const lastFocusedElement = useRef(null)
   const filterButtonRef = useRef(null)
   const filterDialogRef = useRef(null)
@@ -89,13 +91,11 @@ function Feed() {
   useEffect(() => {
     let isCurrentRequest = true
 
-
-    // TODO API : cet appel utilisera GET /api/offers une fois `listOffers`
-    // branché dans `src/services/offers.js`.
-    listOffers(filters)
-      .then((nextOffers) => {
+    listOffers(filters, page)
+      .then(({ items: nextOffers, pagination: nextPagination }) => {
         if (!isCurrentRequest) return
         setOffers(nextOffers)
+        setPagination(nextPagination)
         setStatus('success')
         setSelectedOffer((currentOffer) => {
           if (!currentOffer) return null
@@ -109,7 +109,7 @@ function Feed() {
     return () => {
       isCurrentRequest = false
     }
-  }, [filters])
+  }, [filters, page])
 
   useEffect(() => {
     localStorage.setItem('overkill-favorites', JSON.stringify(favorites))
@@ -150,6 +150,8 @@ function Feed() {
       document.body.style.overflow = ''
     }
   }, [isFiltersOpen, isMobile, selectedOffer])
+
+
 
   useEffect(() => {
     if (!isFiltersOpen) return undefined
@@ -203,8 +205,19 @@ function Feed() {
   }
 
   const resetFilters = () => {
+    setStatus('loading')
+    setPage(1)
     setDraftSearch({ q: '', city: '' })
     applyFilters({ ...EMPTY_FILTERS })
+  }
+
+  const changePage = (nextPage) => {
+    if (status === 'loading' || nextPage < 1 || nextPage > pagination.totalPages) return
+
+    setSelectedOffer(null)
+    setStatus('loading')
+    setPage(nextPage)
+    document.getElementById('feed-results')?.scrollIntoView({ block: 'start' })
   }
 
   const toggleFavorite = (offerId) => {
@@ -296,7 +309,7 @@ function Feed() {
               </div>
             </aside>
 
-            <div className="min-w-0">
+            <div id="feed-results" className="min-w-0 scroll-mt-4">
               <div className="mb-4 flex items-center justify-between gap-4">
                 <div className="flex items-baseline gap-3">
                   <h2 className="text-xl font-semibold text-black">Offres récentes</h2>
@@ -329,7 +342,10 @@ function Feed() {
                   title="Impossible de charger les offres"
                   description="Vérifie la connexion au serveur puis réessaie."
                   actionLabel="Réessayer"
-                  onAction={() => setFilters((currentFilters) => ({ ...currentFilters }))}
+                  onAction={() => {
+                    setStatus('loading')
+                    setFilters((currentFilters) => ({ ...currentFilters }))
+                  }}
                 />
               )}
               {status === 'success' && offers.length === 0 && (
@@ -353,6 +369,32 @@ function Feed() {
                     />
                   ))}
                 </div>
+              )}
+              {status === 'success' && pagination.totalPages > 1 && (
+                <nav
+                  className="mt-6 flex items-center justify-between gap-3 border-t border-black/10 pt-5"
+                  aria-label="Pagination des offres"
+                >
+                  <button
+                    type="button"
+                    onClick={() => changePage(page - 1)}
+                    disabled={page <= 1}
+                    className="min-h-11 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-black transition-colors hover:border-[#a96531] hover:bg-[#a96531] hover:text-white focus:outline-none focus:ring-3 focus:ring-[#d2915c]/20 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-gray-300 disabled:hover:bg-white disabled:hover:text-black"
+                  >
+                    Précédent
+                  </button>
+                  <span className="text-sm font-medium text-gray-600" aria-live="polite">
+                    Page {page} sur {pagination.totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => changePage(page + 1)}
+                    disabled={page >= pagination.totalPages}
+                    className="min-h-11 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-black transition-colors hover:border-[#a96531] hover:bg-[#a96531] hover:text-white focus:outline-none focus:ring-3 focus:ring-[#d2915c]/20 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-gray-300 disabled:hover:bg-white disabled:hover:text-black"
+                  >
+                    Suivant
+                  </button>
+                </nav>
               )}
             </div>
           </section>
@@ -642,9 +684,9 @@ function OfferCard({ offer, isSelected, isFavorite, onSelect, onFavorite }) {
               </span>
             </div>
 
-            <p className="mt-3 line-clamp-2 max-w-[68ch] text-sm leading-6 text-gray-600">
+            <span className="mt-3 line-clamp-2 max-w-[68ch] text-sm leading-6 text-gray-600">
               <ReactMarkdown>{offer.description}</ReactMarkdown>
-            </p>
+            </span>
 
             <div className="mt-4 flex flex-wrap items-end justify-between gap-3 border-t border-gray-100 pt-3">
               <p className="text-xs leading-5 text-gray-500">
@@ -762,11 +804,11 @@ function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite }) {
 
           <DetailSection title="Résumé de l’offre">
             
-            <p className="max-w-[70ch] whitespace-pre-line text-base leading-8 text-gray-700">
-              <span>
+            <span className="max-w-[70ch] whitespace-pre-line text-base leading-8 text-gray-700">
+              
               <ReactMarkdown>{offer.description}</ReactMarkdown>   
-              </span>
-            </p>
+              
+            </span>
             
           </DetailSection>
 
