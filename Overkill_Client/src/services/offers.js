@@ -34,7 +34,7 @@ export async function listOffers(filters = {}) {
   // dans une propriété `offers` ou `data`.
   //return Array.isArray(data) ? data : data.offers || data.data || []
   
-console.log(data[1].extractedSkills)
+console.log(data[0])
 
   // void filters // À retirer lorsque l'exemple d'appel ci-dessus sera activé.
   return data

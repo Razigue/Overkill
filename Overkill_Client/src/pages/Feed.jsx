@@ -11,6 +11,8 @@ import heartIcon from '../assets/icons/heart.svg'
 import heartFilledIcon from '../assets/icons/heart-filled.svg'
 import arrowLeftIcon from '../assets/icons/arrow-left.svg'
 import externalLinkIcon from '../assets/icons/external-link.svg'
+import ReactMarkdown from "react-markdown";
+
 
 
 const EMPTY_FILTERS = {
@@ -278,7 +280,7 @@ function Feed() {
                     
                     {status === 'loading'
                       ? 'Chargement…'
-                      : ` ${ offers.length }  résultat ${ offers.length > 1 ? 's' : '' }`}
+                      : ` ${ offers.length } résultat${ offers.length > 1 ? 's' : '' }`}
                   </span>
                 </div>
                 <button
@@ -602,7 +604,7 @@ function OfferCard({ offer, isSelected, isFavorite, onSelect, onFavorite }) {
             </div>
 
             <p className="mt-3 line-clamp-2 max-w-[68ch] text-sm leading-6 text-gray-600">
-              {offer.description}
+              <ReactMarkdown>{offer.description}</ReactMarkdown>
             </p>
 
             <div className="mt-4 flex flex-wrap items-end justify-between gap-3 border-t border-gray-100 pt-3">
@@ -610,7 +612,7 @@ function OfferCard({ offer, isSelected, isFavorite, onSelect, onFavorite }) {
                 {/* {offer.skills.slice(0, 3).join(' · ')} */}
               </p>
               <div className="text-right">
-                <p className="text-xs text-gray-500">{offer.remoteLabel}</p>
+                <p className="text-xs text-gray-500">{offer.IsRemote}</p>
                 <p className="mt-0.5 text-sm font-semibold text-black">{formatSalary(offer)}</p>
               </div>
             </div>
@@ -694,7 +696,7 @@ function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite }) {
           </div>
 
           <dl className="mt-7 grid grid-cols-2 border-y border-gray-200 sm:grid-cols-3">
-            <DetailStat term="Organisation" description={offer.remoteLabel} />
+            <DetailStat term="Organisation" description={offer.isRemote} />
             <DetailStat term="Salaire" description={formatSalary(offer)} />
             <DetailStat
               term="Publiée"
@@ -711,7 +713,7 @@ function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite }) {
                     key={skill}
                     className="rounded-md border border-gray-200 bg-[#e7e5df] px-2.5 py-1.5 text-sm font-medium text-black"
                   >
-                    {skill}
+                    {skill.replaceAll('"','').replaceAll('[','').replaceAll(']','')}
                   </span>
                 ))
               ) : (
@@ -721,14 +723,18 @@ function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite }) {
           </DetailSection>
 
           <DetailSection title="Résumé de l’offre">
+            
             <p className="max-w-[70ch] whitespace-pre-line text-base leading-8 text-gray-700">
-              {offer.description}
+              <span>
+              <ReactMarkdown>{offer.description}</ReactMarkdown>   
+              </span>
             </p>
+            
           </DetailSection>
 
           <div className="mt-9 border-t border-gray-200 pt-5 text-sm leading-6 text-gray-600">
             <p>
-              Offre publiée sur <span className="font-bold text-black">{offer.source}</span>.
+              Offre publiée sur <span className="font-bold text-black">We Love Dev</span>.
               Overkill centralise l’annonce, mais la candidature se poursuit sur le site d’origine.
             </p>
           </div>
@@ -768,27 +774,27 @@ function DetailSection({ title, children }) {
   )
 }
 
-// function CompanyMark({ offer, large = false }) {
-//   const initials =
-//     offer.companyInitials ||
-//     offer.company
-//       .split(' ')
-//       .map((word) => word[0])
-//       .join('')
-//       .slice(0, 2)
-//       .toLocaleUpperCase('fr')
+function CompanyMark({ offer, large = false }) {
+  const initials =
+    offer.companyInitials ||
+    offer.company
+      .split(' ')
+      .map((word) => word[0])
+      .join('')
+      .slice(0, 2)
+      .toLocaleUpperCase('fr')
 
-//   return (
-//     <span
-//       className={`flex shrink-0 items-center justify-center rounded-lg border border-[#e7d8cc] bg-[#f4eee9] font-semibold text-[#5d3c25] ${
-//         large ? 'h-14 w-14 text-base' : 'h-11 w-11 text-xs'
-//       }`}
-//       aria-hidden="true"
-//     >
-//       {initials}
-//     </span>
-//   )
-// }
+  return (
+    <span
+      className={`flex shrink-0 items-center justify-center rounded-lg border border-[#e7d8cc] bg-[#f4eee9] font-semibold text-[#5d3c25] ${
+        large ? 'h-14 w-14 text-base' : 'h-11 w-11 text-xs'
+      }`}
+      aria-hidden="true"
+    >
+      {initials}
+    </span>
+  )
+}
 
 function OffersLoading() {
   return (

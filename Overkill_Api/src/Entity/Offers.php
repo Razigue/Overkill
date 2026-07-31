@@ -34,7 +34,7 @@ class Offers
     private ?string $city = null;
 
     #[ORM\Column(length: 120, nullable: true)]
-    private ?string $country = null;
+    private ?string $company = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $is_remote = null;
@@ -170,27 +170,29 @@ class Offers
     }
 
     #[Groups('offers:read')]
-    public function getCountry(): ?string
+    public function getCompany(): ?string
     {
-        return $this->country;
+        return $this->company;
     }
 
-    public function setCountry(?string $country): static
+    public function setCompany(?string $company): static
     {
-        $this->country = $country;
+        $this->company = $company;
 
         return $this;
     }
 
     #[Groups('offers:read')]
-    public function getIsRemote(): ?array
+    public function getIsRemote(): ?string
     {
-        return $this->is_remote === null ? null : json_decode($this->is_remote, true);
+        // === null ? null : json_decode($this->is_remote, true)
+        return $this->is_remote;
     }
 
-    public function setIsRemote(?array $is_remote): static
+    public function setIsRemote(?string $is_remote): static
     {
-        $this->is_remote = $is_remote === null ? null : json_encode($is_remote);
+        // === null ? null : json_encode($is_remote)
+        $this->is_remote = $is_remote ;
         return $this;
     }
 
