@@ -11,6 +11,9 @@ import heartIcon from '../assets/icons/heart.svg'
 import heartFilledIcon from '../assets/icons/heart-filled.svg'
 import arrowLeftIcon from '../assets/icons/arrow-left.svg'
 import externalLinkIcon from '../assets/icons/external-link.svg'
+import ReactMarkdown from "react-markdown";
+
+
 
 const EMPTY_FILTERS = {
   q: '',
@@ -41,6 +44,7 @@ function Feed() {
     // pas l'ID de l'offre. L'état actuel ne contient que les IDs d'offres pour la démo.
     // Le localStorage sert uniquement à tester l'interface en attendant le branchement.
     const savedFavorites = localStorage.getItem('overkill-favorites')
+    
     return savedFavorites ? JSON.parse(savedFavorites) : []
   })
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
@@ -59,6 +63,7 @@ function Feed() {
 
   useEffect(() => {
     let isCurrentRequest = true
+
 
     // TODO API : cet appel utilisera GET /api/offers une fois `listOffers`
     // branché dans `src/services/offers.js`.
@@ -203,6 +208,9 @@ function Feed() {
     closeOffer(false)
   }
 
+  console.log(offers)
+  console.log(status)
+
   return (
     <div className="min-h-screen bg-[#faf7f4] text-[#171717]">
       <div id="feed-page-content" onClick={handlePageClick}>
@@ -269,9 +277,10 @@ function Feed() {
                 <div className="flex items-baseline gap-3">
                   <h2 className="text-xl font-semibold text-black">Offres récentes</h2>
                   <span className="text-sm text-gray-500">
+                    
                     {status === 'loading'
                       ? 'Chargement…'
-                      : `${offers.length} résultat${offers.length > 1 ? 's' : ''}`}
+                      : ` ${ offers.length } résultat${ offers.length > 1 ? 's' : '' }`}
                   </span>
                 </div>
                 <button
@@ -578,7 +587,7 @@ function OfferCard({ offer, isSelected, isFavorite, onSelect, onFavorite }) {
         aria-label={`Ouvrir l’offre ${offer.title} chez ${offer.company}`}
       >
         <div className="flex items-start gap-3.5">
-          <CompanyMark offer={offer} />
+          {/* <CompanyMark offer={offer} /> */}
           <div className="min-w-0 flex-1">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
@@ -595,15 +604,15 @@ function OfferCard({ offer, isSelected, isFavorite, onSelect, onFavorite }) {
             </div>
 
             <p className="mt-3 line-clamp-2 max-w-[68ch] text-sm leading-6 text-gray-600">
-              {offer.description}
+              <ReactMarkdown>{offer.description}</ReactMarkdown>
             </p>
 
             <div className="mt-4 flex flex-wrap items-end justify-between gap-3 border-t border-gray-100 pt-3">
               <p className="text-xs leading-5 text-gray-500">
-                {offer.skills.slice(0, 3).join(' · ')}
+                {/* {offer.skills.slice(0, 3).join(' · ')} */}
               </p>
               <div className="text-right">
-                <p className="text-xs text-gray-500">{offer.remoteLabel}</p>
+                <p className="text-xs text-gray-500">{offer.IsRemote}</p>
                 <p className="mt-0.5 text-sm font-semibold text-black">{formatSalary(offer)}</p>
               </div>
             </div>
@@ -670,7 +679,7 @@ function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite }) {
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="px-5 py-7 sm:px-7 sm:py-8">
           <div className="flex items-start gap-4">
-            <CompanyMark offer={offer} large />
+            {/* <CompanyMark offer={offer} large /> */}
             <div className="min-w-0">
               <p className="text-sm font-medium text-gray-600">
                 <span className="text-[#8a542d]">{KIND_LABELS[offer.kind] || offer.kind}</span>
@@ -687,7 +696,7 @@ function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite }) {
           </div>
 
           <dl className="mt-7 grid grid-cols-2 border-y border-gray-200 sm:grid-cols-3">
-            <DetailStat term="Organisation" description={offer.remoteLabel} />
+            <DetailStat term="Organisation" description={offer.isRemote} />
             <DetailStat term="Salaire" description={formatSalary(offer)} />
             <DetailStat
               term="Publiée"
@@ -698,13 +707,13 @@ function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite }) {
 
           <DetailSection title="Stack">
             <div className="flex flex-wrap gap-2">
-              {offer.skills.length > 0 ? (
-                offer.skills.map((skill) => (
+              {offer.extractedSkills.length > 0 ? (
+                offer.extractedSkills.map((skill) => (
                   <span
                     key={skill}
                     className="rounded-md border border-gray-200 bg-[#e7e5df] px-2.5 py-1.5 text-sm font-medium text-black"
                   >
-                    {skill}
+                    {skill.replaceAll('"','').replaceAll('[','').replaceAll(']','')}
                   </span>
                 ))
               ) : (
@@ -714,14 +723,18 @@ function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite }) {
           </DetailSection>
 
           <DetailSection title="Résumé de l’offre">
+            
             <p className="max-w-[70ch] whitespace-pre-line text-base leading-8 text-gray-700">
-              {offer.description}
+              <span>
+              <ReactMarkdown>{offer.description}</ReactMarkdown>   
+              </span>
             </p>
+            
           </DetailSection>
 
           <div className="mt-9 border-t border-gray-200 pt-5 text-sm leading-6 text-gray-600">
             <p>
-              Offre publiée sur <span className="font-bold text-black">{offer.source}</span>.
+              Offre publiée sur <span className="font-bold text-black">We Love Dev</span>.
               Overkill centralise l’annonce, mais la candidature se poursuit sur le site d’origine.
             </p>
           </div>
@@ -839,10 +852,10 @@ function formatSalary(offer) {
   const formatter = new Intl.NumberFormat('fr-FR')
   const currency = offer.salaryCurrency || 'EUR'
   if (offer.salaryMin && offer.salaryMax) {
-    return `${formatter.format(offer.salaryMin)}–${formatter.format(offer.salaryMax)} ${currency}`
+    return `${formatter.format(offer.salaryMin)}K–${formatter.format(offer.salaryMax)}K ${currency}`
   }
 
-  return `${formatter.format(offer.salaryMin || offer.salaryMax)} ${currency}`
+  return `${formatter.format(offer.salaryMin  || offer.salaryMax)} ${currency}`
 }
 
 function formatPublishedDate(date) {
