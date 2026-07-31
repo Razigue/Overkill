@@ -298,7 +298,7 @@ function Feed() {
 
           <section className="mx-auto grid max-w-7xl items-start gap-7 px-4 py-6 sm:px-6 lg:grid-cols-[16rem_minmax(0,1fr)] lg:px-8 lg:py-8">
             <aside className="hidden lg:block">
-              <div className="sticky top-6">
+              <div className="sticky top-28">
                 <FilterPanel
                   filters={filters}
                   activeCount={activeFiltersCount}
