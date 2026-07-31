@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import Footer from '../components/Footer'
 import Header from '../components/Header'
 import { listOffers, offerFilterOptions } from '../services/offers'
@@ -26,6 +27,15 @@ const EMPTY_FILTERS = {
   category: '',
 }
 
+const FILTER_NAMES = Object.keys(EMPTY_FILTERS)
+
+function readFiltersFromSearchParams(searchParams) {
+  return FILTER_NAMES.reduce(
+    (nextFilters, name) => ({ ...nextFilters, [name]: searchParams.get(name)?.trim() || '' }),
+    {},
+  )
+}
+
 const KIND_LABELS = {
   job: 'Emploi',
   internship: 'Stage',
@@ -33,9 +43,13 @@ const KIND_LABELS = {
 }
 
 function Feed() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 1023px)').matches)
-  const [draftSearch, setDraftSearch] = useState({ q: '', city: '' })
-  const [filters, setFilters] = useState(EMPTY_FILTERS)
+  const [filters, setFilters] = useState(() => readFiltersFromSearchParams(searchParams))
+  const [draftSearch, setDraftSearch] = useState(() => ({
+    q: searchParams.get('q')?.trim() || '',
+    city: searchParams.get('city')?.trim() || '',
+  }))
   const [offers, setOffers] = useState([])
   const [selectedOffer, setSelectedOffer] = useState(null)
   const [favorites, setFavorites] = useState(() => {
@@ -54,6 +68,17 @@ function Feed() {
   const lastFocusedElement = useRef(null)
   const filterButtonRef = useRef(null)
   const filterDialogRef = useRef(null)
+
+  const applyFilters = (nextFilters) => {
+    const nextSearchParams = new URLSearchParams()
+
+    FILTER_NAMES.forEach((name) => {
+      if (nextFilters[name]) nextSearchParams.set(name, nextFilters[name])
+    })
+
+    setFilters(nextFilters)
+    setSearchParams(nextSearchParams, { replace: true })
+  }
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 1023px)')
@@ -165,25 +190,25 @@ function Feed() {
 
   const submitSearch = (event) => {
     event.preventDefault()
-    setStatus('loading')
-    setPage(1)
-    setFilters((currentFilters) => ({ ...currentFilters, ...draftSearch }))
+    applyFilters({
+      ...filters,
+      q: draftSearch.q.trim(),
+      city: draftSearch.city.trim(),
+    })
   }
 
   const updateFilter = (name, value) => {
-    setStatus('loading')
-    setPage(1)
-    setFilters((currentFilters) => ({
-      ...currentFilters,
+    applyFilters({
+      ...filters,
       [name]: value,
-    }))
+    })
   }
 
   const resetFilters = () => {
     setStatus('loading')
     setPage(1)
     setDraftSearch({ q: '', city: '' })
-    setFilters(EMPTY_FILTERS)
+    applyFilters({ ...EMPTY_FILTERS })
   }
 
   const changePage = (nextPage) => {
@@ -278,9 +303,7 @@ function Feed() {
                   filters={filters}
                   activeCount={activeFiltersCount}
                   onChange={updateFilter}
-                  onTextChange={(name, value) =>
-                    updateFilter(name, value)
-                  }
+                  onTextChange={updateFilter}
                   onReset={resetFilters}
                 />
               </div>
@@ -399,9 +422,7 @@ function Feed() {
               filters={filters}
               activeCount={activeFiltersCount}
               onChange={updateFilter}
-              onTextChange={(name, value) =>
-                updateFilter(name, value)
-              }
+              onTextChange={updateFilter}
               onReset={resetFilters}
               onClose={() => {
                 setIsFiltersOpen(false)
@@ -426,22 +447,40 @@ function Feed() {
 }
 
 function SearchField({ label, value, onChange, placeholder, icon }) {
+  const inputRef = useRef(null)
+
+  const clearInput = () => {
+    onChange('')
+    window.requestAnimationFrame(() => inputRef.current?.focus())
+  }
+
   return (
-    <label className="flex min-h-12 items-center gap-3 rounded-lg border border-gray-300 bg-white px-3.5 transition focus-within:border-[#c47f48] focus-within:ring-3 focus-within:ring-[#d2915c]/12">
+    <div className="flex min-h-12 items-center gap-3 rounded-lg border border-gray-300 bg-white pl-3.5 pr-1.5 transition focus-within:border-[#c47f48] focus-within:ring-3 focus-within:ring-[#d2915c]/12">
       <span className="opacity-55" aria-hidden="true">
         {icon}
       </span>
-      <span className="min-w-0 flex-1">
+      <label className="min-w-0 flex-1">
         <span className="block text-[0.68rem] font-medium text-gray-500">{label}</span>
         <input
+          ref={inputRef}
           type="text"
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
           className="mt-0.5 w-full bg-transparent text-sm font-medium text-black outline-none placeholder:font-normal placeholder:text-gray-400"
         />
-      </span>
-    </label>
+      </label>
+      {value && (
+        <button
+          type="button"
+          onClick={clearInput}
+          aria-label={`Effacer ${label.toLocaleLowerCase('fr')}`}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-xl leading-none text-gray-500 transition hover:bg-[#f1ebe6] hover:text-black focus:outline-none focus-visible:ring-3 focus-visible:ring-[#d2915c]/25"
+        >
+          ×
+        </button>
+      )}
+    </div>
   )
 }
 
@@ -630,7 +669,6 @@ function OfferCard({ offer, isSelected, isFavorite, onSelect, onFavorite }) {
         aria-label={`Ouvrir l’offre ${offer.title} chez ${offer.company}`}
       >
         <div className="flex items-start gap-3.5">
-          {/* <CompanyMark offer={offer} /> */}
           <div className="min-w-0 flex-1">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
@@ -722,7 +760,6 @@ function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite }) {
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="px-5 py-7 sm:px-7 sm:py-8">
           <div className="flex items-start gap-4">
-            {/* <CompanyMark offer={offer} large /> */}
             <div className="min-w-0">
               <p className="text-sm font-medium text-gray-600">
                 <span className="text-[#8a542d]">{KIND_LABELS[offer.kind] || offer.kind}</span>
@@ -814,28 +851,6 @@ function DetailSection({ title, children }) {
       <h3 className="text-lg font-semibold tracking-[-0.01em] text-black">{title}</h3>
       <div className="mt-4">{children}</div>
     </section>
-  )
-}
-
-function CompanyMark({ offer, large = false }) {
-  const initials =
-    offer.companyInitials ||
-    offer.company
-      .split(' ')
-      .map((word) => word[0])
-      .join('')
-      .slice(0, 2)
-      .toLocaleUpperCase('fr')
-
-  return (
-    <span
-      className={`flex shrink-0 items-center justify-center rounded-lg border border-[#e7d8cc] bg-[#f4eee9] font-semibold text-[#5d3c25] ${
-        large ? 'h-14 w-14 text-base' : 'h-11 w-11 text-xs'
-      }`}
-      aria-hidden="true"
-    >
-      {initials}
-    </span>
   )
 }
 
