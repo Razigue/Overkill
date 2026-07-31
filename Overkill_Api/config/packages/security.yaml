@@ -36,4 +36,5 @@ security:
         - { path: ^/api/contact$, roles: PUBLIC_ACCESS, methods: [POST] }
         - { path: ^/api/offers$, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/offers/\d+$, roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: ^/api/admin, roles: ROLE_ADMIN }
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
