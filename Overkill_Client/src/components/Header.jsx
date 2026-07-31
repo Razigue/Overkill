@@ -72,7 +72,7 @@ function Header({ user: providedUser, onLogout }) {
 
   return (
     <>
-      <header className="w-full bg-white border-b border-gray-200">
+      <header className="sticky top-0 z-40 w-full border-b border-gray-200 bg-white">
         <div className="relative mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           {/* Logo */}
           <a href="/" className="flex items-center" aria-label="Overkill accueil">

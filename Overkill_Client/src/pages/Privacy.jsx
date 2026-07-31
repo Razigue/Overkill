@@ -180,7 +180,7 @@ function Privacy() {
             OVERKILL traite les données à caractère personnel de ses utilisateurs conformément au Règlement général sur la protection des données (RGPD — règlement UE 2016/679) et à la loi Informatique et Libertés.
           </p>
           <div className="grid gap-12 lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-16">
-            <aside className="lg:sticky lg:top-8 lg:self-start">
+            <aside className="lg:sticky lg:top-28 lg:self-start">
               <details className="group border-y border-black/15 py-4 lg:hidden">
                 <summary className="flex cursor-pointer list-none items-center justify-between font-black [&::-webkit-details-marker]:hidden">
                   Sur cette page

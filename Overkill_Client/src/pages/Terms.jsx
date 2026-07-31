@@ -145,7 +145,7 @@ function Terms() {
 
         <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
           <div className="grid gap-12 lg:grid-cols-[250px_minmax(0,1fr)] lg:gap-16">
-            <aside className="lg:sticky lg:top-8 lg:self-start">
+            <aside className="lg:sticky lg:top-28 lg:self-start">
               <details className="group border-y border-black/15 py-4 lg:hidden">
                 <summary className="flex cursor-pointer list-none items-center justify-between font-black [&::-webkit-details-marker]:hidden">Sur cette page <span className="text-xl font-normal text-[#a65f2e]" aria-hidden="true"><span className="group-open:hidden">+</span><span className="hidden group-open:inline">−</span></span></summary>
                 <nav className="mt-3 border-l border-black/20" aria-label="Sommaire mobile des conditions">{tocLinks}</nav>
