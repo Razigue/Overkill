@@ -9,6 +9,8 @@ const resources = [
     description: 'Les bases pour présenter votre parcours, vos compétences et vos expériences de façon claire.',
     link: '/ressources/cv',
     linkLabel: 'Voir le guide CV',
+    secondaryLink: '/ressources/analyse-ats',
+    secondaryLinkLabel: 'Analyser mon CV',
     topics: [
       'Choisir une structure simple et facile à lire.',
       'Mettre en valeur vos expériences et compétences.',
@@ -84,10 +86,15 @@ function Ressources() {
                       </li>
                     ))}
                   </ul>
-                  <div className="mt-6 flex sm:justify-end">
+                  <div className="mt-6 flex flex-wrap gap-3 sm:justify-end">
                     <a href={resource.link || '#'} className="inline-flex rounded-xl bg-black px-5 py-3 text-sm font-bold text-white transition hover:bg-[#d2915c]">
                       {resource.linkLabel}
                     </a>
+                    {resource.secondaryLink && (
+                      <a href={resource.secondaryLink} className="inline-flex rounded-xl bg-[#d2915c] px-5 py-3 text-sm font-bold text-white transition hover:bg-black">
+                        {resource.secondaryLinkLabel}
+                      </a>
+                    )}
                   </div>
                 </div>
               </details>
