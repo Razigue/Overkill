@@ -34,7 +34,7 @@ final class OffersController extends AbstractController
             'category'  => $request->query->get('category'),
         ];
 
-        $page = $request->query->getInt('page', 1);
+        $page = max(1, $request->query->getInt('page', 1));
 
         $paginator = $offers->search($filters, $page);
         $total = count($paginator);

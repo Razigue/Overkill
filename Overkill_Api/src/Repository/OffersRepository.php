@@ -24,10 +24,9 @@ class OffersRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('o')
 
             ->leftJoin('o.company_id', 'c')
-            ->leftJoin('o.category_id', 'cat')
-
             ->andWhere('o.published_at >= :expiry')
             ->setParameter('expiry', new \DateTimeImmutable('-30 days'))
+            ->distinct()
             ->orderBy('o.published_at', 'DESC');
 
 
@@ -37,8 +36,8 @@ class OffersRepository extends ServiceEntityRepository
         }
 
         if (!empty($filters['city'])) {
-            $qb->andWhere('LOWER(o.city) = :city')
-                ->setParameter('city', mb_strtolower($filters['city']));
+            $qb->andWhere('LOWER(o.city) LIKE :city')
+                ->setParameter('city', '%' . mb_strtolower(trim($filters['city'])) . '%');
         }
 
         if (!empty($filters['country'])) {
@@ -53,29 +52,70 @@ class OffersRepository extends ServiceEntityRepository
         }
 
         if (!empty($filters['contract'])) {
-            $qb->andWhere('o.contract = :contract')
-                ->setParameter('contract', $filters['contract']);
+            $qb->andWhere('LOWER(o.contract) = :contract')
+                ->setParameter('contract', mb_strtolower($filters['contract']));
         }
 
         if (!empty($filters['kind'])) {
-            $qb->andWhere('o.kind = :kind')
-                ->setParameter('kind', $filters['kind']);
+            match (mb_strtolower($filters['kind'])) {
+                'job' => $qb->andWhere('LOWER(o.contract) NOT IN (:trainingContracts)')
+                    ->setParameter('trainingContracts', ['stage', 'internship', 'alternance', 'apprentissage', 'apprenticeship']),
+                'internship' => $qb->andWhere('LOWER(o.contract) IN (:internshipContracts)')
+                    ->setParameter('internshipContracts', ['stage', 'internship']),
+                'apprenticeship' => $qb->andWhere('LOWER(o.contract) IN (:apprenticeshipContracts)')
+                    ->setParameter('apprenticeshipContracts', ['alternance', 'apprentissage', 'apprenticeship']),
+                default => $qb->andWhere('1 = 0'),
+            };
         }
 
         if (!empty($filters['remote'])) {
-            $qb->andWhere('o.is_remote LIKE :remote')
-                ->setParameter('remote', '%"frequency":"' . mb_strtolower($filters['remote']) . '"%');
+            $remoteValue = match (mb_strtolower($filters['remote'])) {
+                'full' => 'fulltime',
+                'office' => 'no',
+                'hybrid' => 'hybrid',
+                default => null,
+            };
+
+            if ($remoteValue === null) {
+                $qb->andWhere('1 = 0');
+            } else {
+                $qb->andWhere('LOWER(o.is_remote) = :remote')
+                    ->setParameter('remote', $remoteValue);
+            }
         }
 
         if (!empty($filters['salaryMin'])) {
+            $salaryMin = (int) $filters['salaryMin'];
+            $normalizedSalaryMin = $salaryMin >= 1000
+                ? (int) round($salaryMin / 1000)
+                : $salaryMin;
+
             $qb->andWhere('COALESCE(o.salary_max, o.salary_min) >= :salaryMin')
-                ->setParameter('salaryMin', (int) $filters['salaryMin']);
+                ->setParameter('salaryMin', $normalizedSalaryMin);
         }
 
 
         if (!empty($filters['category'])) {
-            $qb->andWhere('LOWER(cat.name) = :category')
-                ->setParameter('category', mb_strtolower($filters['category']));
+            $categoryPatterns = match (mb_strtolower($filters['category'])) {
+                'développement' => ['%developer%', '%tech lead%', '%blockchain%', '%nocode%'],
+                'data' => ['%data%'],
+                'design' => ['%design%', '%ux%', '%ui%'],
+                'infrastructure' => ['%cloud%', '%devops%', '%system administrator%'],
+                'produit' => ['%product owner%', '%project manager%', '%projet owner%', '%scrum master%'],
+                default => [],
+            };
+
+            if ($categoryPatterns === []) {
+                $qb->andWhere('1 = 0');
+            } else {
+                $categoryExpression = $qb->expr()->orX();
+                foreach ($categoryPatterns as $index => $pattern) {
+                    $parameterName = 'category_' . $index;
+                    $categoryExpression->add($qb->expr()->like('LOWER(o.kind)', ':' . $parameterName));
+                    $qb->setParameter($parameterName, $pattern);
+                }
+                $qb->andWhere($categoryExpression);
+            }
         }
 
         $perPage = 10;
