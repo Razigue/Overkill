@@ -20,33 +20,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Téléchargement et extraction locale (sans sudo, sans wget)
-      - name: Install Gitleaks CLI Locally
-        env:
-          GITLEAKS_VERSION: 8.18.2
-        run: |
-          set -euo pipefail
-
-          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
-          url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${archive}"
-
-          curl \
-            --fail \
-            --show-error \
-            --location \
-            --retry 5 \
-            --retry-delay 2 \
-            --retry-all-errors \
-            --output "$archive" \
-            "$url"
-
-          tar -xzf "$archive" gitleaks
-          chmod +x gitleaks
-          ./gitleaks version
-
-      # Analyse en ciblant directement le binaire local
       - name: Run Gitleaks Analysis
-        run: ./gitleaks detect --verbose --redact || true
+        run: |
+          docker run --rm \
+            --volume "$PWD:/repo" \
+            --workdir /repo \
+            ghcr.io/gitleaks/gitleaks:v8.18.2 \
+            detect --source /repo --verbose --redact || true
 
   test-backend-SecurityController:
     runs-on: self-hosted 
