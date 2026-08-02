@@ -46,6 +46,15 @@ const KIND_LABELS = {
   apprenticeship: 'Alternance',
 }
 
+const FILTER_LABELS = {
+  company: 'Entreprise',
+  contract: 'Contrat',
+  kind: 'Type',
+  remote: 'Organisation',
+  salaryMin: 'Salaire min.',
+  category: 'Catégorie',
+}
+
 function Feed() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 1023px)').matches)
@@ -63,8 +72,13 @@ function Feed() {
     // pas l'ID de l'offre. L'état actuel ne contient que les IDs d'offres pour la démo.
     // Le localStorage sert uniquement à tester l'interface en attendant le branchement.
     const savedFavorites = localStorage.getItem('overkill-favorites')
-    
-    return savedFavorites ? JSON.parse(savedFavorites) : []
+
+    try {
+      const parsedFavorites = savedFavorites ? JSON.parse(savedFavorites) : []
+      return Array.isArray(parsedFavorites) ? parsedFavorites : []
+    } catch {
+      return []
+    }
   })
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
   const [status, setStatus] = useState('loading')
@@ -73,6 +87,7 @@ function Feed() {
   const lastFocusedElement = useRef(null)
   const filterButtonRef = useRef(null)
   const filterDialogRef = useRef(null)
+  const offerDetailRef = useRef(null)
   const applicationDialogRef = useRef(null)
   const applicationTriggerRef = useRef(null)
 
@@ -200,11 +215,48 @@ function Feed() {
     return () => document.removeEventListener('keydown', handleFocusTrap)
   }, [isFiltersOpen])
 
+  useEffect(() => {
+    if (!selectedOffer || !isMobile) return undefined
+
+    const handleFocusTrap = (event) => {
+      if (event.key !== 'Tab') return
+      const focusableElements = offerDetailRef.current?.querySelectorAll(
+        'button:not([disabled]), [href]',
+      )
+      if (!focusableElements?.length) return
+
+      const firstElement = focusableElements[0]
+      const lastElement = focusableElements[focusableElements.length - 1]
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault()
+        lastElement.focus()
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault()
+        firstElement.focus()
+      }
+    }
+
+    document.addEventListener('keydown', handleFocusTrap)
+    return () => document.removeEventListener('keydown', handleFocusTrap)
+  }, [isMobile, selectedOffer])
+
   const activeFiltersCount = useMemo(
     () =>
       Object.entries(filters).filter(
         ([key, value]) => !['q', 'city'].includes(key) && value !== '',
       ).length,
+    [filters],
+  )
+
+  const activeFilters = useMemo(
+    () =>
+      Object.entries(filters)
+        .filter(([key, value]) => !['q', 'city'].includes(key) && value !== '')
+        .map(([name, value]) => ({
+          name,
+          label: FILTER_LABELS[name],
+          value: formatFilterValue(name, value),
+        })),
     [filters],
   )
 
@@ -229,6 +281,14 @@ function Feed() {
     setPage(1)
     setDraftSearch({ q: '', city: '' })
     applyFilters({ ...EMPTY_FILTERS })
+  }
+
+  const resetAdvancedFilters = () => {
+    applyFilters({
+      ...EMPTY_FILTERS,
+      q: filters.q,
+      city: filters.city,
+    })
   }
 
   const changePage = (nextPage) => {
@@ -308,10 +368,10 @@ function Feed() {
         <Header />
 
         <main className="min-h-[calc(100vh-5rem)]">
-          <section className="border-b border-black/10 bg-white">
-            <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <section className="border-b border-black/10 bg-[#f6eee8]">
+            <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-8 lg:px-8">
               <div>
-                <h1 className="text-2xl font-bold tracking-[-0.02em] text-black sm:text-3xl">
+                <h1 className="text-3xl font-black tracking-[-0.025em] text-black sm:text-4xl">
                   Offres d’emploi
                 </h1>
                 <p className="mt-1.5 max-w-xl text-sm leading-6 text-gray-600">
@@ -321,7 +381,7 @@ function Feed() {
               </div>
 
               <form
-                className="mt-5 grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.55fr)_auto]"
+                className="mt-6 grid gap-2 rounded-2xl bg-white p-2 shadow-[0_12px_30px_rgba(71,48,32,0.08)] sm:grid-cols-[minmax(0,1fr)_minmax(0,0.55fr)_auto]"
                 onSubmit={submitSearch}
               >
                 <SearchField
@@ -340,7 +400,7 @@ function Feed() {
                 />
                 <button
                   type="submit"
-                  className="min-h-12 rounded-lg bg-black px-6 text-sm font-semibold text-white transition-colors hover:bg-[#a96531] focus:outline-none focus:ring-4 focus:ring-[#d2915c]/20"
+                  className="min-h-12 rounded-xl bg-black px-6 text-sm font-bold text-white transition-colors hover:bg-[#a96531] focus:outline-none focus:ring-4 focus:ring-[#d2915c]/20"
                 >
                   Rechercher
                 </button>
@@ -356,7 +416,7 @@ function Feed() {
                   activeCount={activeFiltersCount}
                   onChange={updateFilter}
                   onTextChange={updateFilter}
-                  onReset={resetFilters}
+                  onReset={resetAdvancedFilters}
                 />
               </div>
             </aside>
@@ -388,6 +448,31 @@ function Feed() {
                 </button>
               </div>
 
+              {activeFilters.length > 0 && (
+                <div className="mb-5 flex flex-wrap items-center gap-2" aria-label="Filtres actifs">
+                  {activeFilters.map((filter) => (
+                    <button
+                      key={filter.name}
+                      type="button"
+                      onClick={() => updateFilter(filter.name, '')}
+                      className="group inline-flex min-h-9 items-center gap-2 rounded-lg border border-[#dfc5b0] bg-[#fbf2eb] px-3 text-xs font-semibold text-[#75421d] transition hover:border-[#c47f48] hover:bg-[#f4e2d3] focus:outline-none focus-visible:ring-3 focus-visible:ring-[#d2915c]/25"
+                      aria-label={`Retirer le filtre ${filter.label} : ${filter.value}`}
+                    >
+                      <span>{filter.label} · {filter.value}</span>
+                      <span className="text-base leading-none opacity-60 transition group-hover:opacity-100" aria-hidden="true">×</span>
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={resetAdvancedFilters}
+                    className="min-h-9 px-2 text-xs font-semibold text-gray-600 underline decoration-gray-300 underline-offset-4 transition hover:text-black focus:outline-none focus-visible:ring-3 focus-visible:ring-[#d2915c]/25"
+                  >
+                    Tout effacer
+                  </button>
+                </div>
+              )}
+
+              <div aria-busy={status === 'loading'}>
               {status === 'loading' && <OffersLoading />}
               {status === 'error' && (
                 <StateMessage
@@ -448,6 +533,7 @@ function Feed() {
                   </button>
                 </nav>
               )}
+              </div>
             </div>
           </section>
         </main>
@@ -475,7 +561,7 @@ function Feed() {
               activeCount={activeFiltersCount}
               onChange={updateFilter}
               onTextChange={updateFilter}
-              onReset={resetFilters}
+              onReset={resetAdvancedFilters}
               onClose={() => {
                 setIsFiltersOpen(false)
                 window.requestAnimationFrame(() => filterButtonRef.current?.focus())
@@ -487,6 +573,7 @@ function Feed() {
 
       {selectedOffer && (
         <OfferDetail
+          panelRef={offerDetailRef}
           offer={selectedOffer}
           isFavorite={favorites.includes(selectedOffer.id)}
           isModal={isMobile}
@@ -523,7 +610,7 @@ function SearchField({ label, value, onChange, placeholder, icon }) {
   }
 
   return (
-    <div className="flex min-h-12 items-center gap-3 rounded-lg border border-gray-300 bg-white pl-3.5 pr-1.5 transition focus-within:border-[#c47f48] focus-within:ring-3 focus-within:ring-[#d2915c]/12">
+    <div className="flex min-h-12 items-center gap-3 rounded-xl border border-gray-200 bg-white pl-3.5 pr-1.5 transition focus-within:border-[#c47f48] focus-within:ring-3 focus-within:ring-[#d2915c]/12">
       <span className="opacity-55" aria-hidden="true">
         {icon}
       </span>
@@ -535,6 +622,8 @@ function SearchField({ label, value, onChange, placeholder, icon }) {
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
+          maxLength={120}
+          autoComplete="off"
           className="mt-0.5 w-full bg-transparent text-sm font-medium text-black outline-none placeholder:font-normal placeholder:text-gray-400"
         />
       </label>
@@ -724,10 +813,10 @@ function OfferCard({ offer, isSelected, isFavorite, onSelect, onFavorite }) {
   return (
     <article
       data-offer-card
-      className={`relative overflow-hidden rounded-xl border bg-white transition-colors duration-150 ${
+      className={`relative overflow-hidden rounded-xl border bg-white transition-[border-color,box-shadow,transform] duration-200 ${
         isSelected
-          ? 'border-[#c47f48] bg-[#fffaf6]'
-          : 'border-gray-200 hover:border-gray-400'
+          ? 'border-[#c47f48] bg-[#fffaf6] shadow-[0_10px_24px_rgba(71,48,32,0.08)]'
+          : 'border-gray-200 hover:-translate-y-0.5 hover:border-[#c9b5a5] hover:shadow-[0_10px_24px_rgba(71,48,32,0.07)]'
       }`}
     >
       <button
@@ -754,14 +843,13 @@ function OfferCard({ offer, isSelected, isFavorite, onSelect, onFavorite }) {
 
             <OfferDescription description={offer.description} preview />
 
-            <div className="mt-4 flex flex-wrap items-end justify-between gap-3 border-t border-gray-100 pt-3">
-              <p className="text-xs leading-5 text-gray-500">
-                {/* {offer.skills.slice(0, 3).join(' · ')} */}
-              </p>
-              <div className="text-right">
-                <p className="text-xs text-gray-500">{offer.IsRemote}</p>
-                <p className="mt-0.5 text-sm font-semibold text-black">{formatSalary(offer)}</p>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-gray-100 pt-3">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-gray-500">
+                <span>{formatRemote(offer.isRemote)}</span>
+                <span className="text-gray-300" aria-hidden="true">·</span>
+                <span>Publiée {formatPublishedDate(offer.publishedAt, true)}</span>
               </div>
+              <p className="text-sm font-bold text-black">{formatSalary(offer)}</p>
             </div>
           </div>
         </div>
@@ -788,9 +876,10 @@ function OfferCard({ offer, isSelected, isFavorite, onSelect, onFavorite }) {
   )
 }
 
-function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite, onExternalVisit }) {
+function OfferDetail({ panelRef, offer, isFavorite, isModal, onClose, onFavorite, onExternalVisit }) {
   return (
     <aside
+      ref={panelRef}
       id="offer-detail-panel"
       className="animate-offer-panel-in fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-white shadow-[-12px_0_32px_rgba(23,23,23,0.14)] sm:w-[min(92vw,42rem)] lg:w-1/2 lg:max-w-[50vw]"
       role="dialog"
@@ -843,7 +932,7 @@ function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite, onExtern
           </div>
 
           <dl className="mt-7 grid grid-cols-2 border-y border-gray-200 sm:grid-cols-3">
-            <DetailStat term="Organisation" description={offer.isRemote} />
+            <DetailStat term="Organisation" description={formatRemote(offer.isRemote)} />
             <DetailStat term="Salaire" description={formatSalary(offer)} />
             <DetailStat
               term="Publiée"
@@ -854,7 +943,7 @@ function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite, onExtern
 
           <DetailSection title="Stack">
             <div className="flex flex-wrap gap-2">
-              {offer.extractedSkills.length > 0 ? (
+              {Array.isArray(offer.extractedSkills) && offer.extractedSkills.length > 0 ? (
                 offer.extractedSkills.map((skill) => (
                   <span
                     key={skill}
@@ -986,14 +1075,20 @@ function DetailSection({ title, children }) {
 }
 
 function OfferDescription({ description, preview = false }) {
+  const normalizedDescription = normalizeOfferDescription(
+    description || 'Description non renseignée.',
+  )
+
+  if (preview) {
+    return (
+      <p className="mt-3 line-clamp-2 max-w-[68ch] text-sm leading-6 text-gray-600">
+        {createPlainTextPreview(normalizedDescription)}
+      </p>
+    )
+  }
+
   return (
-    <div
-      className={
-        preview
-          ? 'mt-3 line-clamp-2 max-w-[68ch] text-sm leading-6 text-gray-600'
-          : 'max-w-[70ch] space-y-4 [overflow-wrap:anywhere] text-base leading-8 text-gray-700 [&_a]:font-semibold [&_a]:text-[#8a542d] [&_a]:underline [&_a]:underline-offset-4 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_ol_li]:list-decimal [&_strong]:font-semibold [&_strong]:text-black'
-      }
-    >
+    <div className="max-w-[70ch] space-y-4 [overflow-wrap:anywhere] text-base leading-8 text-gray-700 [&_a]:font-semibold [&_a]:text-[#8a542d] [&_a]:underline [&_a]:underline-offset-4 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_ol_li]:list-decimal [&_strong]:font-semibold [&_strong]:text-black">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw, rehypeSanitize]}
@@ -1004,19 +1099,46 @@ function OfferDescription({ description, preview = false }) {
           },
         }}
       >
-        {description || 'Description non renseignée.'}
+        {normalizedDescription}
       </ReactMarkdown>
     </div>
   )
 }
 
+function normalizeOfferDescription(description) {
+  return String(description)
+    .replaceAll('\r\n', '\n')
+    .replaceAll('\r', '\n')
+    .replace(/<br\s*\/?\s*>/gi, '\n\n')
+    .replace(/\*\*[ \t]*([^*\n]*?\S)[ \t]*\*\*/g, '**$1**')
+    .replace(/__[ \t]*([^_\n]*?\S)[ \t]*__/g, '__$1__')
+}
+
+function createPlainTextPreview(description) {
+  return String(description)
+    .replace(/<br\s*\/?\s*>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/^\s{0,3}#{1,6}\s+/gm, '')
+    .replace(/^\s*[-+*]\s+/gm, '')
+    .replace(/^\s*\d+[.)]\s+/gm, '')
+    .replace(/(\*\*|__)(.*?)\1/g, '$2')
+    .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1$2')
+    .replace(/(^|[^_])_([^_\n]+)_(?!_)/g, '$1$2')
+    .replace(/~~([^~\n]+)~~/g, '$1')
+    .replace(/`([^`\n]+)`/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function OffersLoading() {
   return (
-    <div className="space-y-4" aria-label="Chargement des offres">
+    <div className="space-y-4" role="status" aria-label="Chargement des offres">
+      <span className="sr-only">Chargement des offres…</span>
       {[0, 1, 2].map((item) => (
         <div key={item} className="rounded-xl border border-gray-200 bg-white p-5">
-          <div className="flex animate-pulse gap-4">
-            <div className="h-12 w-12 rounded-xl bg-[#eee7e1]" />
+          <div className="flex animate-pulse gap-4 motion-reduce:animate-none">
             <div className="flex-1">
               <div className="h-5 w-2/3 rounded bg-[#eee7e1]" />
               <div className="mt-3 h-4 w-1/3 rounded bg-[#eee7e1]" />
@@ -1064,19 +1186,52 @@ function formatSalary(offer) {
   if (!offer.salaryMin && !offer.salaryMax) return 'Salaire non précisé'
 
   const formatter = new Intl.NumberFormat('fr-FR')
-  const currency = offer.salaryCurrency || 'EUR'
-  if (offer.salaryMin && offer.salaryMax) {
-    return `${formatter.format(offer.salaryMin)}K–${formatter.format(offer.salaryMax)}K ${currency}`
+  const currency = offer.salaryCurrency === 'USD' ? '$' : '€'
+  const formatAmount = (amount) => {
+    const value = Number(amount)
+    if (!Number.isFinite(value)) return null
+    return value < 1000 ? `${formatter.format(value)} k${currency}` : `${formatter.format(value)} ${currency}`
   }
 
-  return `${formatter.format(offer.salaryMin  || offer.salaryMax)} ${currency}`
+  if (offer.salaryMin && offer.salaryMax) {
+    return `${formatAmount(offer.salaryMin)} – ${formatAmount(offer.salaryMax)}`
+  }
+
+  return offer.salaryMin
+    ? `Dès ${formatAmount(offer.salaryMin)}`
+    : `Jusqu’à ${formatAmount(offer.salaryMax)}`
 }
 
-function formatPublishedDate(date) {
+function formatPublishedDate(date, relative = false) {
   if (!date) return 'Date inconnue'
+  const parsedDate = new Date(date)
+  if (Number.isNaN(parsedDate.getTime())) return 'Date inconnue'
+
+  if (relative) {
+    const days = Math.max(0, Math.floor((Date.now() - parsedDate.getTime()) / 86400000))
+    if (days === 0) return 'aujourd’hui'
+    if (days === 1) return 'hier'
+    if (days < 30) return `il y a ${days} jours`
+  }
+
   return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' }).format(
-    new Date(date),
+    parsedDate,
   )
+}
+
+function formatRemote(remote) {
+  if (!remote) return 'Organisation non précisée'
+  const normalizedRemote = String(remote).toLocaleLowerCase('fr')
+  const match = offerFilterOptions.remote.find(({ value }) => value === normalizedRemote)
+  return match?.label || remote
+}
+
+function formatFilterValue(name, value) {
+  if (name === 'kind') return KIND_LABELS[value] || value
+  if (name === 'remote') return formatRemote(value)
+  if (name === 'salaryMin') return `${new Intl.NumberFormat('fr-FR').format(value)} €`
+  if (name === 'contract') return formatContract(value)
+  return value
 }
 
 export default Feed
