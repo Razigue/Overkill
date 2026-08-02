@@ -42,7 +42,6 @@ function Profil() {
     const [isRevokingSessions, setIsRevokingSessions] = useState(false)
     const [sessionFeedback, setSessionFeedback] = useState(null)
     const [isExportingData, setIsExportingData] = useState(false)
-    const [deletionRequestedAt, setDeletionRequestedAt] = useState(null)
     const [isDeletionActionPending, setIsDeletionActionPending] = useState(false)
     const [showDeletionConfirmation, setShowDeletionConfirmation] = useState(false)
     const [privacyFeedback, setPrivacyFeedback] = useState(null)
@@ -81,7 +80,6 @@ function Profil() {
             const parsedUser = JSON.parse(savedUser);
             setUser(parsedUser);
             setIsAdmin(checkIsAdmin(parsedUser));
-            setDeletionRequestedAt(parsedUser.dataDeletionRequestedAt || null);
             setProfileFirstName(parsedUser.firstname || '');
             setProfileLastName(parsedUser.lastname || '');
             setProfileEmail(parsedUser.email || '');
@@ -394,15 +392,6 @@ function Profil() {
         }
     };
 
-    const saveDeletionRequestState = (requestedAt) => {
-        setDeletionRequestedAt(requestedAt);
-        setUser((currentUser) => {
-            const updatedUser = { ...currentUser, dataDeletionRequestedAt: requestedAt };
-            localStorage.setItem('user', JSON.stringify(updatedUser));
-            return updatedUser;
-        });
-    };
-
     const handleRequestDataDeletion = async () => {
         if (isDeletionActionPending) return;
 
@@ -418,49 +407,20 @@ function Profil() {
             const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                setPrivacyFeedback({ type: 'error', message: data.error || 'Votre demande n’a pas pu être enregistrée. Réessayez.' });
+                setPrivacyFeedback({ type: 'error', message: data.error || 'Votre compte n’a pas pu être supprimé. Réessayez.' });
                 return;
             }
 
-            saveDeletionRequestState(data.requestedAt);
-            setShowDeletionConfirmation(false);
-            setPrivacyFeedback({ type: 'success', message: data.message || 'Votre demande de suppression a bien été enregistrée.' });
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            setUser(null);
+            navigate('/', { replace: true, state: { accountDeleted: true } });
         } catch {
             setPrivacyFeedback({ type: 'error', message: 'Impossible de contacter le serveur. Vérifiez votre connexion puis réessayez.' });
         } finally {
             setIsDeletionActionPending(false);
         }
     };
-
-    const handleCancelDataDeletion = async () => {
-        if (isDeletionActionPending) return;
-
-        setIsDeletionActionPending(true);
-        setPrivacyFeedback(null);
-
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8000/api/me/data-deletion-request', {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await response.json().catch(() => ({}));
-
-            if (!response.ok) {
-                setPrivacyFeedback({ type: 'error', message: data.error || 'L’annulation n’a pas pu être enregistrée. Réessayez.' });
-                return;
-            }
-
-            saveDeletionRequestState(null);
-            setPrivacyFeedback({ type: 'success', message: data.message || 'Votre demande de suppression a été annulée.' });
-        } catch {
-            setPrivacyFeedback({ type: 'error', message: 'Impossible de contacter le serveur. Vérifiez votre connexion puis réessayez.' });
-        } finally {
-            setIsDeletionActionPending(false);
-        }
-    };
-
-    // 5. Ajout de compétence
     const handleAddSkill = async (e) => {
         e.preventDefault();
         if (!newSkillName.trim()) return;
@@ -681,7 +641,7 @@ function Profil() {
                                                                         <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-black group-hover:text-[#8a542d]">{cv.originalName}</span><span className="mt-1 block text-xs text-gray-500">{cv.uploadedAt}</span></span>
                                                                         <img src={externalLinkIcon} alt="" className="h-5 w-5 shrink-0 opacity-45 transition group-hover:opacity-100" aria-hidden="true" />
                                                                     </a>
-                                                                    <button type="button" onClick={() => setCvToDelete(cv)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-500 transition hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-200" aria-label={'Supprimer ' + cv.originalName}>
+                                                                    <button type="button" onClick={() => setCvToDelete(cv)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-red-700 transition hover:bg-red-50 hover:text-red-900 focus:outline-none focus:ring-2 focus:ring-red-200" aria-label={'Supprimer ' + cv.originalName}>
                                                                         <img src={trashIcon} alt="" className="h-5 w-5" aria-hidden="true" />
                                                                     </button>
                                                                 </div>
@@ -951,36 +911,23 @@ function Profil() {
                                             </div>
 
                                             <div className="border-t border-gray-200 bg-[#fcfbfa] p-5 sm:p-7">
-                                                {deletionRequestedAt ? (
-                                                    <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                                                        <div>
-                                                            <div className="flex flex-wrap items-center gap-2">
-                                                                <h4 className="font-black text-black">Suppression demandée</h4>
-                                                                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-900">En attente de traitement</span>
-                                                            </div>
-                                                            <p className="mt-2 max-w-xl text-sm leading-6 text-gray-600">Demande enregistrée le {new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' }).format(new Date(deletionRequestedAt))}. Vous pouvez l’annuler tant qu’elle n’a pas été traitée.</p>
-                                                        </div>
-                                                        <button type="button" onClick={handleCancelDataDeletion} disabled={isDeletionActionPending} className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl border border-gray-300 bg-white px-5 text-sm font-bold text-black transition hover:border-black focus:outline-none focus:ring-4 focus:ring-gray-200 disabled:cursor-not-allowed disabled:opacity-60">
-                                                            {isDeletionActionPending ? 'Annulation…' : 'Annuler la demande'}
-                                                        </button>
-                                                    </div>
-                                                ) : showDeletionConfirmation ? (
+                                                {showDeletionConfirmation ? (
                                                     <div className="rounded-xl bg-red-50 p-4 sm:p-5">
-                                                        <h4 className="font-black text-red-900">Confirmer la demande de suppression</h4>
-                                                        <p className="mt-2 max-w-2xl text-sm leading-6 text-red-800">Cette demande concerne l’ensemble des données liées à votre compte. Elle sera enregistrée pour traitement et pourra être annulée avant sa prise en charge.</p>
+                                                        <h4 className="font-black text-red-900">Supprimer définitivement mon compte ?</h4>
+                                                        <p className="mt-2 max-w-2xl text-sm leading-6 text-red-800">Cette action est immédiate et irréversible. Votre compte et les données personnelles qui lui sont associées seront supprimés, puis un e-mail de confirmation vous sera envoyé.</p>
                                                         <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row">
-                                                            <button type="button" onClick={() => setShowDeletionConfirmation(false)} disabled={isDeletionActionPending} className="min-h-11 rounded-xl border border-red-200 bg-white px-4 text-sm font-bold text-red-800 transition hover:border-red-800 focus:outline-none focus:ring-4 focus:ring-red-100 disabled:opacity-60">Retour</button>
-                                                            <button type="button" onClick={handleRequestDataDeletion} disabled={isDeletionActionPending} className="min-h-11 rounded-xl bg-red-700 px-4 text-sm font-bold text-white transition hover:bg-red-900 focus:outline-none focus:ring-4 focus:ring-red-200 disabled:cursor-not-allowed disabled:opacity-60">{isDeletionActionPending ? 'Enregistrement…' : 'Confirmer ma demande'}</button>
+                                                            <button type="button" onClick={() => setShowDeletionConfirmation(false)} disabled={isDeletionActionPending} className="min-h-11 rounded-xl border border-red-200 bg-white px-4 text-sm font-bold text-red-800 transition hover:border-red-800 focus:outline-none focus:ring-4 focus:ring-red-100 disabled:opacity-60">Conserver mon compte</button>
+                                                            <button type="button" onClick={handleRequestDataDeletion} disabled={isDeletionActionPending} className="min-h-11 rounded-xl bg-red-700 px-4 text-sm font-bold text-white transition hover:bg-red-900 focus:outline-none focus:ring-4 focus:ring-red-200 disabled:cursor-wait disabled:opacity-60">{isDeletionActionPending ? 'Suppression en cours…' : 'Supprimer définitivement'}</button>
                                                         </div>
                                                     </div>
                                                 ) : (
                                                     <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                                                         <div>
-                                                            <h4 className="font-black text-black">Demander la suppression de mes données</h4>
-                                                            <p className="mt-1 max-w-xl text-sm leading-6 text-gray-600">Transmettez une demande portant sur toutes les données personnelles associées à votre compte.</p>
+                                                            <h4 className="font-black text-black">Supprimer définitivement mon compte</h4>
+                                                            <p className="mt-1 max-w-xl text-sm leading-6 text-gray-600">Supprimez immédiatement votre compte et les données personnelles associées. Vous recevrez un e-mail de confirmation.</p>
                                                         </div>
                                                         <button type="button" onClick={() => { setPrivacyFeedback(null); setShowDeletionConfirmation(true); }} className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl border border-red-200 bg-white px-5 text-sm font-bold text-red-700 transition hover:border-red-700 hover:bg-red-700 hover:text-white focus:outline-none focus:ring-4 focus:ring-red-100">
-                                                            Demander la suppression
+                                                            Supprimer mon compte
                                                         </button>
                                                     </div>
                                                 )}

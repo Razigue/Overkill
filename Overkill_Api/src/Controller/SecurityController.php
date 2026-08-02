@@ -300,6 +300,7 @@ public function database(EntityManagerInterface $em): Response
     public function requestDataDeletion(
         #[CurrentUser] ?User $user,
         EntityManagerInterface $entityManager,
+        UserFavoritesRepository $favoritesRepository,
         MailerInterface $mailer,
         #[Autowire('%env(CONTACT_RECIPIENT)%')] string $recipient,
         #[Autowire('%env(CONTACT_SENDER)%')] string $sender
@@ -308,60 +309,40 @@ public function database(EntityManagerInterface $em): Response
             return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
         }
 
-        if ($user->getDataDeletionRequestedAt() !== null) {
-            return $this->json([
-                'message' => 'Votre demande de suppression est déjà enregistrée.',
-                'requestedAt' => $user->getDataDeletionRequestedAt()->format(\DateTimeInterface::ATOM),
-            ]);
-        }
-
-        $requestedAt = new \DateTimeImmutable();
+        $userId = $user->getId();
+        $userEmail = (string) $user->getEmail();
         $fullName = trim(sprintf('%s %s', $user->getFirstName(), $user->getLastName()));
         $email = (new Email())
             ->from(new Address($sender, 'Overkill'))
-            ->to($recipient)
-            ->replyTo(new Address($user->getEmail(), $fullName ?: $user->getEmail()))
-            ->subject(sprintf('[RGPD Overkill] Demande de suppression du compte #%d', $user->getId()))
+            ->to(new Address($userEmail, $fullName ?: $userEmail))
+            ->bcc($recipient)
+            ->subject('[Overkill] Votre compte a été supprimé')
             ->text(sprintf(
-                "Nouvelle demande de suppression de données depuis Overkill\n\nUtilisateur : %s\nEmail : %s\nIdentifiant du compte : %d\nDate de la demande : %s\n\nLa demande concerne l’ensemble des données personnelles associées à ce compte.",
+                "Bonjour %s,\n\nVotre compte Overkill et les données personnelles qui lui sont associées ont été supprimés. Vous ne pouvez désormais plus vous connecter avec l’adresse %s.\n\nIdentifiant de l’ancien compte : %d\nDate de suppression : %s\n\nL’équipe Overkill",
                 $fullName ?: 'Non renseigné',
-                $user->getEmail(),
-                $user->getId(),
-                $requestedAt->format(\DateTimeInterface::ATOM),
+                $userEmail,
+                $userId,
+                (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM),
             ));
 
         try {
             $mailer->send($email);
         } catch (TransportExceptionInterface) {
             return $this->json(
-                ['error' => 'La demande n’a pas pu être transmise par e-mail. Réessayez dans quelques instants.'],
+                ['error' => 'Le compte n’a pas été supprimé car l’e-mail de confirmation n’a pas pu être envoyé. Réessayez dans quelques instants.'],
                 Response::HTTP_SERVICE_UNAVAILABLE
             );
         }
 
-        $user->setDataDeletionRequestedAt($requestedAt);
-        $user->setUpdatedAt($requestedAt);
+        foreach ($favoritesRepository->findBy(['user_id' => $user]) as $favorite) {
+            $entityManager->remove($favorite);
+        }
+
+        $entityManager->remove($user);
         $entityManager->flush();
 
         return $this->json([
-            'message' => 'Votre demande de suppression a été enregistrée et transmise par e-mail.',
-            'requestedAt' => $user->getDataDeletionRequestedAt()?->format(\DateTimeInterface::ATOM),
+            'message' => 'Votre compte et vos données personnelles ont été supprimés. Un e-mail de confirmation vous a été envoyé.',
         ]);
-    }
-
-    #[Route('/api/me/data-deletion-request', name: 'api_cancel_data_deletion', methods: ['DELETE'])]
-    public function cancelDataDeletion(
-        #[CurrentUser] ?User $user,
-        EntityManagerInterface $entityManager
-    ): JsonResponse {
-        if ($user === null) {
-            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
-        }
-
-        $user->setDataDeletionRequestedAt(null);
-        $user->setUpdatedAt(new \DateTimeImmutable());
-        $entityManager->flush();
-
-        return $this->json(['message' => 'Votre demande de suppression a été annulée.']);
     }
 }

@@ -7,7 +7,8 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: ApplicationRepository::class)]
-#[ORM\Table(name: 'application', uniqueConstraints: [new ORM\UniqueConstraint(name: 'uniq_application_user_offer', columns: ['user_id', 'offer_id'])])]
+#[ORM\Table(name: 'application')]
+#[ORM\UniqueConstraint(name: 'uniq_application_user_offer', columns: ['user_id', 'offer_id'])]
 class Application
 {
     #[ORM\Id]

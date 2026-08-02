@@ -5,6 +5,7 @@ namespace App\Tests\Controller;
 use App\Entity\User;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\HttpFoundation\Response;
 
 class SecurityControllerTest extends WebTestCase
 {
@@ -396,7 +397,7 @@ class SecurityControllerTest extends WebTestCase
         $this->assertArrayHasKey('favoriteOffers', $responseData);
     }
 
-    public function testDataDeletionRequestCanBeCreatedAndCancelled(): void
+    public function testDataDeletionRequestDeletesAccountAndSendsConfirmation(): void
     {
         $client = static::createClient();
         $token = $this->createAuthenticatedUser($client, 'data-deletion@epitech.eu', 'password123');
@@ -405,23 +406,23 @@ class SecurityControllerTest extends WebTestCase
         $client->request('POST', '/api/me/data-deletion-request', [], [], $server);
         $this->assertResponseIsSuccessful();
         $responseData = json_decode($client->getResponse()->getContent(), true);
-        $this->assertNotEmpty($responseData['requestedAt']);
-        $this->assertStringContainsString('transmise par e-mail', $responseData['message']);
+        $this->assertStringContainsString('ont été supprimés', $responseData['message']);
 
         $this->assertEmailCount(1);
         $message = self::getMailerMessage();
         $this->assertNotNull($message);
-        $this->assertEmailSubjectContains($message, '[RGPD Overkill]');
-        $this->assertEmailTextBodyContains($message, 'data-deletion@epitech.eu');
-        $this->assertEmailTextBodyContains($message, 'suppression de données');
+        $this->assertEmailAddressContains($message, 'To', 'data-deletion@epitech.eu');
+        $this->assertEmailSubjectContains($message, 'Votre compte a été supprimé');
+        $this->assertEmailTextBodyContains($message, 'ont été supprimés');
 
-        $client->request('DELETE', '/api/me/data-deletion-request', [], [], $server);
-        $this->assertResponseIsSuccessful();
+        $entityManager = static::getContainer()->get('doctrine')->getManager();
+        $entityManager->clear();
+        $this->assertNull($entityManager->getRepository(User::class)->findOneBy([
+            'email' => 'data-deletion@epitech.eu',
+        ]));
 
         $client->request('GET', '/api/me', [], [], $server);
-        $this->assertResponseIsSuccessful();
-        $responseData = json_decode($client->getResponse()->getContent(), true);
-        $this->assertNull($responseData['dataDeletionRequestedAt']);
+        $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
     }
 
     // ==========================================

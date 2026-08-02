@@ -7,8 +7,8 @@ services:
       - "${BACKEND_PORT:-8000}:8000"
     environment:
       APP_ENV: ${APP_ENV:-dev}
-      APP_SECRET: ${APP_SECRET:?APP_SECRET must be set in your local .env file}
-      DATABASE_URL: ${POSTGRES_REMOTE_URL:?POSTGRES_REMOTE_URL must be set in your local .env file}
+      APP_SECRET: ${APP_SECRET:-overkill_local_development_secret}
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-overkill_user}:${POSTGRES_PASSWORD:-overkill_password}@database:5432/${POSTGRES_DB:-overkill}?serverVersion=16&charset=utf8"
       MESSENGER_TRANSPORT_DSN: ${MESSENGER_TRANSPORT_DSN:-doctrine://default?auto_setup=0}
       MAILER_DSN: ${MAILER_DSN:-null://null}
       CONTACT_RECIPIENT: ${CONTACT_RECIPIENT:-contact@overkill.test}
@@ -18,9 +18,9 @@ services:
       - ./Overkill_Api:/app
       - backend_vendor:/app/vendor
       - backend_var:/app/var
-    # depends_on:
-    #   database:
-    #     condition: service_healthy
+    depends_on:
+      database:
+        condition: service_healthy
     networks:
       - overkill
 
@@ -41,25 +41,23 @@ services:
     networks:
       - overkill
 
-  # database:
-  #   image: postgres:16-alpine
-  #   environment:
-  #     POSTGRES_REMOTE_HOST: ${POSTGRES_REMOTE_HOST}
-  #     POSTGRES_REMOTE_DB: ${POSTGRES_REMOTE_DB}
-  #     POSTGRES_REMOTE_USER: ${POSTGRES_REMOTE_USER}
-  #     POSTGRES_REMOTE_PASSWORD: ${POSTGRES_REMOTE_PASSWORD}
-  #     POSTGRES_PASSWORD: ${POSTGRES_REMOTE_PASSWORD}
-  #   ports:
-  #     - "${POSTGRES_PORT:-5432}:5432"
-  #   volumes:
-  #     - database_data:/var/lib/postgresql/data
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
-  #     timeout: 5s
-  #     retries: 5
-  #     start_period: 10s
-  #   networks:
-  #     - overkill
+  database:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-overkill}
+      POSTGRES_USER: ${POSTGRES_USER:-overkill_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-overkill_password}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - database_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB:-overkill} -U $${POSTGRES_USER:-overkill_user}"]
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - overkill
 
 networks:
   overkill:
