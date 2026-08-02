@@ -2,11 +2,13 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import Toast from '../components/Toast'
 import eyeIcon from '../assets/icons/eye.svg'
 import eyeOffIcon from '../assets/icons/eye-off.svg'
 import userPlusIcon from '../assets/icons/user-plus.svg'
 import lockIcon from '../assets/icons/lock.svg'
 import externalLinkIcon from '../assets/icons/external-link.svg'
+import trashIcon from '../assets/icons/trash-2.svg'
 import { deleteApplication, listApplications } from '../services/applications'
 
 const applicationDateFormatter = new Intl.DateTimeFormat('fr-FR', {
@@ -26,6 +28,9 @@ function Profil() {
     const [activeTab, setActiveTab] = useState('cv')
     const [cvList, setCvList] = useState([])
     const [isUploading, setIsUploading] = useState(false)
+    const [notification, setNotification] = useState(null)
+    const [cvToDelete, setCvToDelete] = useState(null)
+    const [isDeletingCv, setIsDeletingCv] = useState(false)
     const [skillsList, setSkillsList] = useState([])
     const [newSkillName, setNewSkillName] = useState('')
     const [currentPassword, setCurrentPassword] = useState('')
@@ -526,16 +531,57 @@ function Profil() {
             const data = await response.json();
 
             if (response.ok) {
-                alert(data.message || "CV téléversé avec succès !");
+                setNotification({
+                    type: 'success',
+                    message: data.message || 'CV téléversé avec succès !',
+                });
                 setCvList((prevList) => [data.cv, ...prevList]);
             } else {
-                alert(data.error || "Erreur lors de l'upload du CV.");
+                setNotification({
+                    type: 'error',
+                    message: data.error || "Erreur lors de l'upload du CV.",
+                });
             }
         } catch (error) {
             console.error("Erreur API :", error);
+            setNotification({
+                type: 'error',
+                message: "Impossible d'envoyer le CV. Vérifiez votre connexion puis réessayez.",
+            });
         } finally {
             setIsUploading(false);
             event.target.value = '';
+        }
+    };
+
+    const handleDeleteCv = async () => {
+        if (!cvToDelete || isDeletingCv) return;
+
+        setIsDeletingCv(true);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:8000/api/cvs/' + cvToDelete.id, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                throw new Error(data.error || 'Le CV n’a pas pu être supprimé.');
+            }
+
+            setCvList((currentList) => currentList.filter((cv) => cv.id !== cvToDelete.id));
+            setNotification({ type: 'success', message: 'CV supprimé avec succès.' });
+            setCvToDelete(null);
+        } catch (error) {
+            setNotification({
+                type: 'error',
+                message: error.message || 'Le CV n’a pas pu être supprimé.',
+            });
+        } finally {
+            setIsDeletingCv(false);
         }
     };
 
@@ -555,6 +601,7 @@ function Profil() {
     return (
         <div className="flex min-h-screen flex-col bg-[#faf7f4] text-[#171717]">
             <Header user={user} onLogout={handleLogout} />
+            <Toast notification={notification} onDismiss={() => setNotification(null)} />
 
             <main className="flex-1">
                 <section className="border-b border-black/10 bg-white">
@@ -625,13 +672,34 @@ function Profil() {
                                                 {cvList.length === 0 ? (
                                                     <div className="flex min-h-52 flex-col items-center justify-center text-center"><p className="font-bold text-black">Aucun CV pour le moment</p><p className="mt-2 max-w-xs text-sm leading-6 text-gray-600">Votre prochain document apparaîtra ici après l’envoi.</p></div>
                                                 ) : (
-                                                    <div className="divide-y divide-gray-200">
+                                                    <div>
                                                         {cvList.map((cv) => (
-                                                            <a key={cv.id} href={'http://localhost:8000' + cv.filePath} target="_blank" rel="noopener noreferrer" className="group flex min-h-20 items-center gap-4 py-4 outline-none transition focus-visible:ring-2 focus-visible:ring-[#d2915c]">
-                                                                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#f2dccb] text-xs font-black text-[#75421d]">CV</span>
-                                                                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-black group-hover:text-[#8a542d]">{cv.originalName}</span><span className="mt-1 block text-xs text-gray-500">{cv.uploadedAt}</span></span>
-                                                                <span className="text-xl text-gray-400 group-hover:text-black" aria-hidden="true">↗</span>
-                                                            </a>
+                                                            <div key={cv.id} className="border-b border-gray-200 last:border-b-0">
+                                                                <div className="flex items-center gap-2 py-3">
+                                                                    <a href={'http://localhost:8000' + cv.filePath} target="_blank" rel="noopener noreferrer" className="group flex min-h-14 min-w-0 flex-1 items-center gap-4 rounded-lg px-1 outline-none transition focus-visible:ring-2 focus-visible:ring-[#d2915c]" aria-label={'Ouvrir ' + cv.originalName + ' dans un nouvel onglet'}>
+                                                                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#f2dccb] text-xs font-black text-[#75421d]">CV</span>
+                                                                        <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-black group-hover:text-[#8a542d]">{cv.originalName}</span><span className="mt-1 block text-xs text-gray-500">{cv.uploadedAt}</span></span>
+                                                                        <img src={externalLinkIcon} alt="" className="h-5 w-5 shrink-0 opacity-45 transition group-hover:opacity-100" aria-hidden="true" />
+                                                                    </a>
+                                                                    <button type="button" onClick={() => setCvToDelete(cv)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-500 transition hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-200" aria-label={'Supprimer ' + cv.originalName}>
+                                                                        <img src={trashIcon} alt="" className="h-5 w-5" aria-hidden="true" />
+                                                                    </button>
+                                                                </div>
+                                                                {cvToDelete?.id === cv.id && (
+                                                                    <div className="mb-3 border-y border-[#e3b995] bg-[#fffaf6] px-4 py-4">
+                                                                        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                                                                            <div className="min-w-0">
+                                                                                <p className="text-sm font-medium text-black">Supprimer ce CV ?</p>
+                                                                                <p className="mt-1 truncate text-xs text-[#68482f]">{cv.originalName}</p>
+                                                                            </div>
+                                                                            <div className="flex shrink-0 gap-2">
+                                                                                <button type="button" onClick={() => setCvToDelete(null)} disabled={isDeletingCv} className="min-h-9 rounded-lg border border-black/15 bg-white px-3 text-sm font-medium text-gray-700 transition hover:border-black/40 hover:text-black focus:outline-none focus:ring-2 focus:ring-[#d2915c]/25 disabled:opacity-50">Conserver</button>
+                                                                                <button type="button" onClick={handleDeleteCv} disabled={isDeletingCv} className="min-h-9 rounded-lg bg-black px-3 text-sm font-semibold text-white transition hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-[#d2915c]/25 disabled:cursor-wait disabled:opacity-70">{isDeletingCv ? 'Suppression…' : 'Supprimer'}</button>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         ))}
                                                     </div>
                                                 )}

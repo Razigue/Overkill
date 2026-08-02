@@ -6,6 +6,7 @@ use App\Entity\Cv;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -108,4 +109,50 @@ class CvController extends AbstractController
             ]
         ], Response::HTTP_CREATED);
     }
+
+    /**
+     * Route 3 : Supprimer un CV appartenant à l'utilisateur connecté
+     */
+    #[Route('/{id}', name: 'delete', methods: ['DELETE'], requirements: ['id' => '\\d+'])]
+    public function delete(
+        int $id,
+        EntityManagerInterface $em,
+        Filesystem $filesystem,
+        #[CurrentUser] ?User $user
+    ): Response {
+        if (!$user) {
+            return $this->json(['error' => 'Non autorisé'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $cv = $em->getRepository(Cv::class)->find($id);
+        if (!$cv) {
+            return $this->json(['error' => 'CV introuvable'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($cv->getUser() !== $user) {
+            return $this->json(['error' => 'Accès refusé'], Response::HTTP_FORBIDDEN);
+        }
+
+        $storedFilename = basename((string) $cv->getFilePath());
+        $storedPath = rtrim((string) $this->getParameter('cvs_directory'), DIRECTORY_SEPARATOR)
+            . DIRECTORY_SEPARATOR
+            . $storedFilename;
+
+        try {
+            if ($filesystem->exists($storedPath)) {
+                $filesystem->remove($storedPath);
+            }
+        } catch (\Throwable) {
+            return $this->json(
+                ['error' => 'Impossible de supprimer le fichier du CV'],
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+
+        $em->remove($cv);
+        $em->flush();
+
+        return new Response(null, Response::HTTP_NO_CONTENT);
+    }
+
 }
