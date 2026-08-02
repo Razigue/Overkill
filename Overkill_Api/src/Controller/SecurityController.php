@@ -8,14 +8,23 @@
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Dto\ChangePasswordInput;
+use App\Dto\UpdateProfileInput;
 use Symfony\Component\Routing\Attribute\Route;
 use App\Dto\RegistrationInput;
 use App\Repository\UserRepository;
+use App\Repository\UserFavoritesRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Address;
+use Symfony\Component\Mime\Email;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
@@ -113,6 +122,246 @@ public function database(EntityManagerInterface $em): Response
             'email' => $user->getEmail(),
             'firstname' => $user->getFirstName(),
             'lastname' => $user->getLastName(),
+            'dataDeletionRequestedAt' => $user->getDataDeletionRequestedAt()?->format(\DateTimeInterface::ATOM),
         ]);
+    }
+
+    #[Route('/api/me/password', name: 'api_change_password', methods: ['PATCH'])]
+    public function changePassword(
+        #[CurrentUser] ?User $user,
+        #[MapRequestPayload] ChangePasswordInput $input,
+        UserPasswordHasherInterface $passwordHasher,
+        EntityManagerInterface $entityManager
+    ): JsonResponse {
+        if ($user === null) {
+            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        if (!$passwordHasher->isPasswordValid($user, $input->currentPassword)) {
+            return $this->json(
+                ['error' => 'Le mot de passe actuel est incorrect.'],
+                Response::HTTP_BAD_REQUEST
+            );
+        }
+
+        if ($passwordHasher->isPasswordValid($user, $input->newPassword)) {
+            return $this->json(
+                ['error' => 'Le nouveau mot de passe doit être différent du mot de passe actuel.'],
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        }
+
+        $user->setPassword($passwordHasher->hashPassword($user, $input->newPassword));
+        $user->setUpdatedAt(new \DateTimeImmutable());
+        $entityManager->flush();
+
+        return $this->json(['message' => 'Votre mot de passe a bien été modifié.']);
+    }
+
+    #[Route('/api/me/profile', name: 'api_update_profile', methods: ['PATCH'])]
+    public function updateProfile(
+        #[CurrentUser] ?User $user,
+        #[MapRequestPayload] UpdateProfileInput $input,
+        UserPasswordHasherInterface $passwordHasher,
+        UserRepository $userRepository,
+        EntityManagerInterface $entityManager
+    ): JsonResponse {
+        if ($user === null) {
+            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        if (!$passwordHasher->isPasswordValid($user, $input->currentPassword)) {
+            return $this->json(
+                ['error' => 'Le mot de passe actuel est incorrect.'],
+                Response::HTTP_BAD_REQUEST
+            );
+        }
+
+        $email = mb_strtolower(trim($input->email));
+        $existingUser = $userRepository->findOneBy(['email' => $email]);
+        if ($existingUser !== null && $existingUser->getId() !== $user->getId()) {
+            return $this->json(
+                ['error' => 'Un compte existe déjà avec cette adresse e-mail.'],
+                Response::HTTP_CONFLICT
+            );
+        }
+
+        $emailChanged = $email !== $user->getEmail();
+        $user->setFirstName(trim($input->firstName));
+        $user->setLastName(trim($input->lastName));
+        $user->setEmail($email);
+        $user->setUpdatedAt(new \DateTimeImmutable());
+        $entityManager->flush();
+
+        return $this->json([
+            'message' => $emailChanged
+                ? 'Vos informations ont été modifiées. Reconnectez-vous avec votre nouvelle adresse e-mail.'
+                : 'Vos informations personnelles ont bien été modifiées.',
+            'requiresReauthentication' => $emailChanged,
+            'user' => [
+                'id' => $user->getId(),
+                'email' => $user->getEmail(),
+                'firstname' => $user->getFirstName(),
+                'lastname' => $user->getLastName(),
+                'dataDeletionRequestedAt' => $user->getDataDeletionRequestedAt()?->format(\DateTimeInterface::ATOM),
+            ],
+        ]);
+    }
+
+    #[Route('/api/me/sessions/revoke', name: 'api_revoke_all_sessions', methods: ['POST'])]
+    public function revokeAllSessions(
+        #[CurrentUser] ?User $user,
+        EntityManagerInterface $entityManager
+    ): JsonResponse {
+        if ($user === null) {
+            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $user->revokeAllSessions();
+        $user->setUpdatedAt(new \DateTimeImmutable());
+        $entityManager->flush();
+
+        return $this->json(['message' => 'Tous vos appareils ont été déconnectés.']);
+    }
+
+    #[Route('/api/me/data-export', name: 'api_export_personal_data', methods: ['GET'])]
+    public function exportPersonalData(
+        #[CurrentUser] ?User $user,
+        UserFavoritesRepository $favoritesRepository
+    ): JsonResponse {
+        if ($user === null) {
+            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $skills = [];
+        foreach ($user->getSkills() as $skill) {
+            $skills[] = [
+                'id' => $skill->getId(),
+                'name' => $skill->getName(),
+            ];
+        }
+
+        $cvs = [];
+        foreach ($user->getCvs() as $cv) {
+            $cvs[] = [
+                'id' => $cv->getId(),
+                'originalName' => $cv->getOriginalName(),
+                'filePath' => $cv->getFilePath(),
+                'uploadedAt' => $cv->getUploadedAt()?->format(\DateTimeInterface::ATOM),
+            ];
+        }
+
+        $favorites = [];
+        foreach ($favoritesRepository->findBy(['user_id' => $user]) as $favorite) {
+            $offer = $favorite->getOfferId();
+            $favorites[] = [
+                'id' => $favorite->getId(),
+                'createdAt' => $favorite->getCreatedAt()?->format(\DateTimeInterface::ATOM),
+                'offer' => $offer === null ? null : [
+                    'id' => $offer->getId(),
+                    'title' => $offer->getTitle(),
+                    'company' => $offer->getCompany(),
+                    'externalUrl' => $offer->getExternalUrl(),
+                ],
+            ];
+        }
+
+        $response = $this->json([
+            'generatedAt' => (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM),
+            'account' => [
+                'id' => $user->getId(),
+                'email' => $user->getEmail(),
+                'firstname' => $user->getFirstName(),
+                'lastname' => $user->getLastName(),
+                'roles' => $user->getRoles(),
+                'createdAt' => $user->getCreatedAt()?->format(\DateTimeInterface::ATOM),
+                'updatedAt' => $user->getUpdatedAt()?->format(\DateTimeInterface::ATOM),
+            ],
+            'profile' => [
+                'cvText' => $user->getCvText(),
+                'skills' => $skills,
+            ],
+            'documents' => $cvs,
+            'favoriteOffers' => $favorites,
+            'dataDeletionRequest' => [
+                'requestedAt' => $user->getDataDeletionRequestedAt()?->format(\DateTimeInterface::ATOM),
+            ],
+        ]);
+        $filename = sprintf('overkill-donnees-personnelles-%s.json', (new \DateTimeImmutable())->format('Y-m-d'));
+        $response->headers->set(
+            'Content-Disposition',
+            HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, $filename)
+        );
+
+        return $response;
+    }
+
+    #[Route('/api/me/data-deletion-request', name: 'api_request_data_deletion', methods: ['POST'])]
+    public function requestDataDeletion(
+        #[CurrentUser] ?User $user,
+        EntityManagerInterface $entityManager,
+        MailerInterface $mailer,
+        #[Autowire('%env(CONTACT_RECIPIENT)%')] string $recipient,
+        #[Autowire('%env(CONTACT_SENDER)%')] string $sender
+    ): JsonResponse {
+        if ($user === null) {
+            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        if ($user->getDataDeletionRequestedAt() !== null) {
+            return $this->json([
+                'message' => 'Votre demande de suppression est déjà enregistrée.',
+                'requestedAt' => $user->getDataDeletionRequestedAt()->format(\DateTimeInterface::ATOM),
+            ]);
+        }
+
+        $requestedAt = new \DateTimeImmutable();
+        $fullName = trim(sprintf('%s %s', $user->getFirstName(), $user->getLastName()));
+        $email = (new Email())
+            ->from(new Address($sender, 'Overkill'))
+            ->to($recipient)
+            ->replyTo(new Address($user->getEmail(), $fullName ?: $user->getEmail()))
+            ->subject(sprintf('[RGPD Overkill] Demande de suppression du compte #%d', $user->getId()))
+            ->text(sprintf(
+                "Nouvelle demande de suppression de données depuis Overkill\n\nUtilisateur : %s\nEmail : %s\nIdentifiant du compte : %d\nDate de la demande : %s\n\nLa demande concerne l’ensemble des données personnelles associées à ce compte.",
+                $fullName ?: 'Non renseigné',
+                $user->getEmail(),
+                $user->getId(),
+                $requestedAt->format(\DateTimeInterface::ATOM),
+            ));
+
+        try {
+            $mailer->send($email);
+        } catch (TransportExceptionInterface) {
+            return $this->json(
+                ['error' => 'La demande n’a pas pu être transmise par e-mail. Réessayez dans quelques instants.'],
+                Response::HTTP_SERVICE_UNAVAILABLE
+            );
+        }
+
+        $user->setDataDeletionRequestedAt($requestedAt);
+        $user->setUpdatedAt($requestedAt);
+        $entityManager->flush();
+
+        return $this->json([
+            'message' => 'Votre demande de suppression a été enregistrée et transmise par e-mail.',
+            'requestedAt' => $user->getDataDeletionRequestedAt()?->format(\DateTimeInterface::ATOM),
+        ]);
+    }
+
+    #[Route('/api/me/data-deletion-request', name: 'api_cancel_data_deletion', methods: ['DELETE'])]
+    public function cancelDataDeletion(
+        #[CurrentUser] ?User $user,
+        EntityManagerInterface $entityManager
+    ): JsonResponse {
+        if ($user === null) {
+            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $user->setDataDeletionRequestedAt(null);
+        $user->setUpdatedAt(new \DateTimeImmutable());
+        $entityManager->flush();
+
+        return $this->json(['message' => 'Votre demande de suppression a été annulée.']);
     }
 }

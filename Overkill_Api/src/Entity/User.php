@@ -53,6 +53,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?\DateTimeImmutable $updated_at = null;
 
+    #[ORM\Column(options: ['default' => 0])]
+    private int $session_version = 0;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $data_deletion_requested_at = null;
+
     #[ORM\OneToMany(mappedBy: 'user', targetEntity: Cv::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['uploadedAt' => 'DESC'])]
     #[Ignore]
@@ -238,6 +244,30 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setUpdatedAt(\DateTimeImmutable $updated_at): static
     {
         $this->updated_at = $updated_at;
+
+        return $this;
+    }
+
+    public function getSessionVersion(): int
+    {
+        return $this->session_version;
+    }
+
+    public function revokeAllSessions(): static
+    {
+        ++$this->session_version;
+
+        return $this;
+    }
+
+    public function getDataDeletionRequestedAt(): ?\DateTimeImmutable
+    {
+        return $this->data_deletion_requested_at;
+    }
+
+    public function setDataDeletionRequestedAt(?\DateTimeImmutable $requestedAt): static
+    {
+        $this->data_deletion_requested_at = $requestedAt;
 
         return $this;
     }
