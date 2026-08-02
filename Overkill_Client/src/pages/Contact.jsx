@@ -1,27 +1,39 @@
 import { useState } from 'react'
-import PublicHeader from '../components/PublicHeader'
+import Header from '../components/Header'
 import Footer from '../components/Footer'
+import Toast from '../components/Toast'
 import Background from '../assets/images/Overkill_Background.png'
+import { sendContactMessage } from '../services/contact'
 
 function Contact() {
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' })
-  const [isSent, setIsSent] = useState(false)
+  const [isSending, setIsSending] = useState(false)
+  const [notification, setNotification] = useState(null)
 
   const handleChange = (event) => {
     const { name, value } = event.target
     setForm((currentForm) => ({ ...currentForm, [name]: value }))
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
-    // TODO: Brancher ici l'envoi du formulaire de contact.
-    console.log('Demande de contact', form)
-    setIsSent(true)
+    setIsSending(true)
+
+    try {
+      await sendContactMessage(form)
+      setForm({ name: '', email: '', subject: '', message: '' })
+      setNotification({ type: 'success', message: 'Merci, votre message a bien été envoyé.' })
+    } catch (submitError) {
+      setNotification({ type: 'error', message: submitError.message })
+    } finally {
+      setIsSending(false)
+    }
   }
 
   return (
     <div className="flex min-h-screen flex-col bg-[#faf7f4] text-[#171717]">
-      <PublicHeader />
+      <Header />
+      <Toast notification={notification} onDismiss={() => setNotification(null)} />
 
       <main className="flex-1">
         <section
@@ -46,13 +58,13 @@ function Contact() {
             <p className="text-sm font-bold uppercase tracking-wide text-[#d2915c]">Nous joindre</p>
             <h2 className="mt-3 text-4xl font-black leading-tight text-black">Parlons de votre recherche.</h2>
             <p className="mt-5 max-w-md leading-7 text-gray-600">
-              Retrouvez ici les informations utiles pour nous contacter. Ces textes sont prêts à être personnalisés avec vos coordonnées.
+              Écrivez-nous grâce au formulaire. En environnement de test, les messages sont centralisés dans Mailtrap.
             </p>
 
             <div className="mt-8 space-y-4">
               <article className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">
                 <p className="text-sm font-bold text-[#d2915c]">Email</p>
-                <p className="mt-2 text-base font-bold text-black">contact@overkill.fr</p>
+                <p className="mt-2 text-base font-bold text-black">Formulaire de contact</p>
                 <p className="mt-1 text-sm text-gray-600">Pour toute question ou demande d'information.</p>
               </article>
               <article className="rounded-2xl bg-[#ebc09d] p-5 ring-1 ring-black/5">
@@ -71,35 +83,29 @@ function Contact() {
               </div>
             </div>
 
-            {isSent ? (
-              <div className="mt-7 rounded-xl border border-[#d2915c]/30 bg-[#faf7f4] p-5 text-sm leading-6 text-gray-700" role="status">
-                Merci, votre message a bien été envoyé.
+            <form className="mt-7 grid gap-5 sm:grid-cols-2" onSubmit={handleSubmit}>
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold text-gray-700">Nom</span>
+                <input name="name" value={form.name} onChange={handleChange} required placeholder="Votre nom" className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold text-gray-700">Adresse email</span>
+                <input type="email" name="email" value={form.email} onChange={handleChange} required placeholder="vous@exemple.fr" className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="mb-2 block text-sm font-semibold text-gray-700">Sujet</span>
+                <input name="subject" value={form.subject} onChange={handleChange} required placeholder="L'objet de votre message" className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="mb-2 block text-sm font-semibold text-gray-700">Message</span>
+                <textarea name="message" value={form.message} onChange={handleChange} required rows="6" placeholder="Écrivez votre message ici..." className="w-full resize-y rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
+              </label>
+              <div className="sm:col-span-2">
+                <button type="submit" disabled={isSending} className="rounded-xl bg-black px-6 py-3 text-sm font-bold text-white transition hover:bg-[#d2915c] disabled:cursor-not-allowed disabled:opacity-60">
+                  {isSending ? 'Envoi en cours…' : 'Envoyer le message'}
+                </button>
               </div>
-            ) : (
-              <form className="mt-7 grid gap-5 sm:grid-cols-2" onSubmit={handleSubmit}>
-                <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-gray-700">Nom</span>
-                  <input name="name" value={form.name} onChange={handleChange} required placeholder="Votre nom" className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
-                </label>
-                <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-gray-700">Adresse email</span>
-                  <input type="email" name="email" value={form.email} onChange={handleChange} required placeholder="vous@exemple.fr" className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
-                </label>
-                <label className="block sm:col-span-2">
-                  <span className="mb-2 block text-sm font-semibold text-gray-700">Sujet</span>
-                  <input name="subject" value={form.subject} onChange={handleChange} required placeholder="L'objet de votre message" className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
-                </label>
-                <label className="block sm:col-span-2">
-                  <span className="mb-2 block text-sm font-semibold text-gray-700">Message</span>
-                  <textarea name="message" value={form.message} onChange={handleChange} required rows="6" placeholder="Écrivez votre message ici..." className="w-full resize-y rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none transition focus:border-[#d2915c] focus:ring-4 focus:ring-[#d2915c]/10" />
-                </label>
-                <div className="sm:col-span-2">
-                  <button type="submit" className="rounded-xl bg-black px-6 py-3 text-sm font-bold text-white transition hover:bg-[#d2915c]">
-                    Envoyer le message
-                  </button>
-                </div>
-              </form>
-            )}
+            </form>
           </div>
         </section>
       </main>

@@ -1,18 +1,19 @@
-export async function listOffers(filters = {}) {
+export async function listOffers(filters = {}, page = 1) {
   // TODO API (GET /api/offers) :
   // Remplacer le `return []` par l'appel au backend Symfony.
   // Le backend se charge de lire Neon et de normaliser les offres provenant
   // de France Travail et WeLoveDevs.
 
-  /*
+  
   const apiUrl = 'http://localhost:8000'
   const queryParams = new URLSearchParams()
+  queryParams.set('page', String(page))
 
-  Object.entries(filters).forEach(([name, value]) => {
-    if (value !== '' && value !== null && value !== undefined) {
-      queryParams.set(name, value)
-    }
-  })
+  // Object.entries(filters).forEach(([name, value]) => {
+  //   if (value !== '' && value !== null && value !== undefined) {
+  //     queryParams.set(name, value)
+  //   }
+  // })
 
   const response = await fetch(`${apiUrl}/api/offers?${queryParams.toString()}`, {
     method: 'GET',
@@ -29,14 +30,16 @@ export async function listOffers(filters = {}) {
 
   const data = await response.json()
 
-  // TODO API FORMAT :
-  // Adapter cette ligne uniquement si Symfony enveloppe les résultats
-  // dans une propriété `offers` ou `data`.
-  return Array.isArray(data) ? data : data.offers || data.data || []
-  */
+  void filters // À retirer lorsque les filtres seront ajoutés aux paramètres de requête.
 
-  void filters // À retirer lorsque l'exemple d'appel ci-dessus sera activé.
-  return []
+  return {
+    items: Array.isArray(data.items) ? data.items : [],
+    pagination: {
+      page: data.pagination?.page ?? page,
+      total: data.pagination?.total ?? 0,
+      totalPages: data.pagination?.totalPages ?? 0,
+    },
+  }
 }
 
 export const offerFilterOptions = {

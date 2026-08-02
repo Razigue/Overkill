@@ -26,7 +26,6 @@ final class OffersController extends AbstractController
         $filters = [
             'q'         => $request->query->get('q'),
             'city'      => $request->query->get('city'),
-            'country'   => $request->query->get('country'),
             'company'   => $request->query->get('company'),
             'contract'  => $request->query->get('contract'),
             'kind'      => $request->query->get('kind'),
@@ -35,9 +34,24 @@ final class OffersController extends AbstractController
             'category'  => $request->query->get('category'),
         ];
 
-        $validOffers = $offers->search($filters);
+        $page = $request->query->getInt('page', 1);
 
-        return $this->json($validOffers, Response::HTTP_OK, [], ['groups' => 'offers:read']);
+        $paginator = $offers->search($filters, $page);
+        $total = count($paginator);
+
+        return $this->json(
+            [
+                'items'      => iterator_to_array($paginator),
+                'pagination' => [
+                    'page'       => $page,
+                    'total'      => $total,
+                    'totalPages' => (int) ceil($total / 10),
+                ],
+            ],
+            Response::HTTP_OK,
+            [],
+            ['groups' => 'offers:read']
+        );
     }
 
     #[Route('/api/offers', name: 'api_create_offers', methods: ['POST'])]
@@ -83,7 +97,7 @@ final class OffersController extends AbstractController
         }
 
         $createOffer->setCity($input->city);
-        $createOffer->setCountry($input->country);
+        $createOffer->setCompany($input->company);
         $createOffer->setIsRemote($input->isRemote);
         $createOffer->setSalaryMin($input->salaryMin);
         $createOffer->setSalaryMax($input->salaryMax);

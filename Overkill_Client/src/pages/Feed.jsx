@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import Footer from '../components/Footer'
-import PublicHeader from '../components/PublicHeader'
+import Header from '../components/Header'
 import { listOffers, offerFilterOptions } from '../services/offers'
 import chevronDown from '../assets/icons/chevron-down.svg'
 import searchIcon from '../assets/icons/search.svg'
@@ -11,6 +12,9 @@ import heartIcon from '../assets/icons/heart.svg'
 import heartFilledIcon from '../assets/icons/heart-filled.svg'
 import arrowLeftIcon from '../assets/icons/arrow-left.svg'
 import externalLinkIcon from '../assets/icons/external-link.svg'
+import ReactMarkdown from "react-markdown";
+
+
 
 const EMPTY_FILTERS = {
   q: '',
@@ -23,6 +27,15 @@ const EMPTY_FILTERS = {
   category: '',
 }
 
+const FILTER_NAMES = Object.keys(EMPTY_FILTERS)
+
+function readFiltersFromSearchParams(searchParams) {
+  return FILTER_NAMES.reduce(
+    (nextFilters, name) => ({ ...nextFilters, [name]: searchParams.get(name)?.trim() || '' }),
+    {},
+  )
+}
+
 const KIND_LABELS = {
   job: 'Emploi',
   internship: 'Stage',
@@ -30,9 +43,13 @@ const KIND_LABELS = {
 }
 
 function Feed() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 1023px)').matches)
-  const [draftSearch, setDraftSearch] = useState({ q: '', city: '' })
-  const [filters, setFilters] = useState(EMPTY_FILTERS)
+  const [filters, setFilters] = useState(() => readFiltersFromSearchParams(searchParams))
+  const [draftSearch, setDraftSearch] = useState(() => ({
+    q: searchParams.get('q')?.trim() || '',
+    city: searchParams.get('city')?.trim() || '',
+  }))
   const [offers, setOffers] = useState([])
   const [selectedOffer, setSelectedOffer] = useState(null)
   const [favorites, setFavorites] = useState(() => {
@@ -41,13 +58,27 @@ function Feed() {
     // pas l'ID de l'offre. L'état actuel ne contient que les IDs d'offres pour la démo.
     // Le localStorage sert uniquement à tester l'interface en attendant le branchement.
     const savedFavorites = localStorage.getItem('overkill-favorites')
+    
     return savedFavorites ? JSON.parse(savedFavorites) : []
   })
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
   const [status, setStatus] = useState('loading')
+  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 0 })
   const lastFocusedElement = useRef(null)
   const filterButtonRef = useRef(null)
   const filterDialogRef = useRef(null)
+
+  const applyFilters = (nextFilters) => {
+    const nextSearchParams = new URLSearchParams()
+
+    FILTER_NAMES.forEach((name) => {
+      if (nextFilters[name]) nextSearchParams.set(name, nextFilters[name])
+    })
+
+    setFilters(nextFilters)
+    setSearchParams(nextSearchParams, { replace: true })
+  }
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 1023px)')
@@ -60,12 +91,11 @@ function Feed() {
   useEffect(() => {
     let isCurrentRequest = true
 
-    // TODO API : cet appel utilisera GET /api/offers une fois `listOffers`
-    // branché dans `src/services/offers.js`.
-    listOffers(filters)
-      .then((nextOffers) => {
+    listOffers(filters, page)
+      .then(({ items: nextOffers, pagination: nextPagination }) => {
         if (!isCurrentRequest) return
         setOffers(nextOffers)
+        setPagination(nextPagination)
         setStatus('success')
         setSelectedOffer((currentOffer) => {
           if (!currentOffer) return null
@@ -79,7 +109,7 @@ function Feed() {
     return () => {
       isCurrentRequest = false
     }
-  }, [filters])
+  }, [filters, page])
 
   useEffect(() => {
     localStorage.setItem('overkill-favorites', JSON.stringify(favorites))
@@ -121,6 +151,8 @@ function Feed() {
     }
   }, [isFiltersOpen, isMobile, selectedOffer])
 
+
+
   useEffect(() => {
     if (!isFiltersOpen) return undefined
 
@@ -158,19 +190,34 @@ function Feed() {
 
   const submitSearch = (event) => {
     event.preventDefault()
-    setFilters((currentFilters) => ({ ...currentFilters, ...draftSearch }))
+    applyFilters({
+      ...filters,
+      q: draftSearch.q.trim(),
+      city: draftSearch.city.trim(),
+    })
   }
 
   const updateFilter = (name, value) => {
-    setFilters((currentFilters) => ({
-      ...currentFilters,
+    applyFilters({
+      ...filters,
       [name]: value,
-    }))
+    })
   }
 
   const resetFilters = () => {
+    setStatus('loading')
+    setPage(1)
     setDraftSearch({ q: '', city: '' })
-    setFilters(EMPTY_FILTERS)
+    applyFilters({ ...EMPTY_FILTERS })
+  }
+
+  const changePage = (nextPage) => {
+    if (status === 'loading' || nextPage < 1 || nextPage > pagination.totalPages) return
+
+    setSelectedOffer(null)
+    setStatus('loading')
+    setPage(nextPage)
+    document.getElementById('feed-results')?.scrollIntoView({ block: 'start' })
   }
 
   const toggleFavorite = (offerId) => {
@@ -206,7 +253,7 @@ function Feed() {
   return (
     <div className="min-h-screen bg-[#faf7f4] text-[#171717]">
       <div id="feed-page-content" onClick={handlePageClick}>
-        <PublicHeader />
+        <Header />
 
         <main className="min-h-[calc(100vh-5rem)]">
           <section className="border-b border-black/10 bg-white">
@@ -251,27 +298,26 @@ function Feed() {
 
           <section className="mx-auto grid max-w-7xl items-start gap-7 px-4 py-6 sm:px-6 lg:grid-cols-[16rem_minmax(0,1fr)] lg:px-8 lg:py-8">
             <aside className="hidden lg:block">
-              <div className="sticky top-6">
+              <div className="sticky top-28">
                 <FilterPanel
                   filters={filters}
                   activeCount={activeFiltersCount}
                   onChange={updateFilter}
-                  onTextChange={(name, value) =>
-                    setFilters((currentFilters) => ({ ...currentFilters, [name]: value }))
-                  }
+                  onTextChange={updateFilter}
                   onReset={resetFilters}
                 />
               </div>
             </aside>
 
-            <div className="min-w-0">
+            <div id="feed-results" className="min-w-0 scroll-mt-4">
               <div className="mb-4 flex items-center justify-between gap-4">
                 <div className="flex items-baseline gap-3">
                   <h2 className="text-xl font-semibold text-black">Offres récentes</h2>
                   <span className="text-sm text-gray-500">
+                    
                     {status === 'loading'
                       ? 'Chargement…'
-                      : `${offers.length} résultat${offers.length > 1 ? 's' : ''}`}
+                      : ` ${ offers.length } résultat${ offers.length > 1 ? 's' : '' }`}
                   </span>
                 </div>
                 <button
@@ -296,7 +342,10 @@ function Feed() {
                   title="Impossible de charger les offres"
                   description="Vérifie la connexion au serveur puis réessaie."
                   actionLabel="Réessayer"
-                  onAction={() => setFilters((currentFilters) => ({ ...currentFilters }))}
+                  onAction={() => {
+                    setStatus('loading')
+                    setFilters((currentFilters) => ({ ...currentFilters }))
+                  }}
                 />
               )}
               {status === 'success' && offers.length === 0 && (
@@ -320,6 +369,32 @@ function Feed() {
                     />
                   ))}
                 </div>
+              )}
+              {status === 'success' && pagination.totalPages > 1 && (
+                <nav
+                  className="mt-6 flex items-center justify-between gap-3 border-t border-black/10 pt-5"
+                  aria-label="Pagination des offres"
+                >
+                  <button
+                    type="button"
+                    onClick={() => changePage(page - 1)}
+                    disabled={page <= 1}
+                    className="min-h-11 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-black transition-colors hover:border-[#a96531] hover:bg-[#a96531] hover:text-white focus:outline-none focus:ring-3 focus:ring-[#d2915c]/20 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-gray-300 disabled:hover:bg-white disabled:hover:text-black"
+                  >
+                    Précédent
+                  </button>
+                  <span className="text-sm font-medium text-gray-600" aria-live="polite">
+                    Page {page} sur {pagination.totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => changePage(page + 1)}
+                    disabled={page >= pagination.totalPages}
+                    className="min-h-11 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-black transition-colors hover:border-[#a96531] hover:bg-[#a96531] hover:text-white focus:outline-none focus:ring-3 focus:ring-[#d2915c]/20 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-gray-300 disabled:hover:bg-white disabled:hover:text-black"
+                  >
+                    Suivant
+                  </button>
+                </nav>
               )}
             </div>
           </section>
@@ -347,9 +422,7 @@ function Feed() {
               filters={filters}
               activeCount={activeFiltersCount}
               onChange={updateFilter}
-              onTextChange={(name, value) =>
-                setFilters((currentFilters) => ({ ...currentFilters, [name]: value }))
-              }
+              onTextChange={updateFilter}
               onReset={resetFilters}
               onClose={() => {
                 setIsFiltersOpen(false)
@@ -374,22 +447,40 @@ function Feed() {
 }
 
 function SearchField({ label, value, onChange, placeholder, icon }) {
+  const inputRef = useRef(null)
+
+  const clearInput = () => {
+    onChange('')
+    window.requestAnimationFrame(() => inputRef.current?.focus())
+  }
+
   return (
-    <label className="flex min-h-12 items-center gap-3 rounded-lg border border-gray-300 bg-white px-3.5 transition focus-within:border-[#c47f48] focus-within:ring-3 focus-within:ring-[#d2915c]/12">
+    <div className="flex min-h-12 items-center gap-3 rounded-lg border border-gray-300 bg-white pl-3.5 pr-1.5 transition focus-within:border-[#c47f48] focus-within:ring-3 focus-within:ring-[#d2915c]/12">
       <span className="opacity-55" aria-hidden="true">
         {icon}
       </span>
-      <span className="min-w-0 flex-1">
+      <label className="min-w-0 flex-1">
         <span className="block text-[0.68rem] font-medium text-gray-500">{label}</span>
         <input
+          ref={inputRef}
           type="text"
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
           className="mt-0.5 w-full bg-transparent text-sm font-medium text-black outline-none placeholder:font-normal placeholder:text-gray-400"
         />
-      </span>
-    </label>
+      </label>
+      {value && (
+        <button
+          type="button"
+          onClick={clearInput}
+          aria-label={`Effacer ${label.toLocaleLowerCase('fr')}`}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-xl leading-none text-gray-500 transition hover:bg-[#f1ebe6] hover:text-black focus:outline-none focus-visible:ring-3 focus-visible:ring-[#d2915c]/25"
+        >
+          ×
+        </button>
+      )}
+    </div>
   )
 }
 
@@ -578,7 +669,6 @@ function OfferCard({ offer, isSelected, isFavorite, onSelect, onFavorite }) {
         aria-label={`Ouvrir l’offre ${offer.title} chez ${offer.company}`}
       >
         <div className="flex items-start gap-3.5">
-          <CompanyMark offer={offer} />
           <div className="min-w-0 flex-1">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
@@ -594,16 +684,16 @@ function OfferCard({ offer, isSelected, isFavorite, onSelect, onFavorite }) {
               </span>
             </div>
 
-            <p className="mt-3 line-clamp-2 max-w-[68ch] text-sm leading-6 text-gray-600">
-              {offer.description}
-            </p>
+            <span className="mt-3 line-clamp-2 max-w-[68ch] text-sm leading-6 text-gray-600">
+              <ReactMarkdown>{offer.description}</ReactMarkdown>
+            </span>
 
             <div className="mt-4 flex flex-wrap items-end justify-between gap-3 border-t border-gray-100 pt-3">
               <p className="text-xs leading-5 text-gray-500">
-                {offer.skills.slice(0, 3).join(' · ')}
+                {/* {offer.skills.slice(0, 3).join(' · ')} */}
               </p>
               <div className="text-right">
-                <p className="text-xs text-gray-500">{offer.remoteLabel}</p>
+                <p className="text-xs text-gray-500">{offer.IsRemote}</p>
                 <p className="mt-0.5 text-sm font-semibold text-black">{formatSalary(offer)}</p>
               </div>
             </div>
@@ -670,7 +760,6 @@ function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite }) {
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="px-5 py-7 sm:px-7 sm:py-8">
           <div className="flex items-start gap-4">
-            <CompanyMark offer={offer} large />
             <div className="min-w-0">
               <p className="text-sm font-medium text-gray-600">
                 <span className="text-[#8a542d]">{KIND_LABELS[offer.kind] || offer.kind}</span>
@@ -687,7 +776,7 @@ function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite }) {
           </div>
 
           <dl className="mt-7 grid grid-cols-2 border-y border-gray-200 sm:grid-cols-3">
-            <DetailStat term="Organisation" description={offer.remoteLabel} />
+            <DetailStat term="Organisation" description={offer.isRemote} />
             <DetailStat term="Salaire" description={formatSalary(offer)} />
             <DetailStat
               term="Publiée"
@@ -698,13 +787,13 @@ function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite }) {
 
           <DetailSection title="Stack">
             <div className="flex flex-wrap gap-2">
-              {offer.skills.length > 0 ? (
-                offer.skills.map((skill) => (
+              {offer.extractedSkills.length > 0 ? (
+                offer.extractedSkills.map((skill) => (
                   <span
                     key={skill}
                     className="rounded-md border border-gray-200 bg-[#e7e5df] px-2.5 py-1.5 text-sm font-medium text-black"
                   >
-                    {skill}
+                    {skill.replaceAll('"','').replaceAll('[','').replaceAll(']','')}
                   </span>
                 ))
               ) : (
@@ -714,14 +803,18 @@ function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite }) {
           </DetailSection>
 
           <DetailSection title="Résumé de l’offre">
-            <p className="max-w-[70ch] whitespace-pre-line text-base leading-8 text-gray-700">
-              {offer.description}
-            </p>
+            
+            <span className="max-w-[70ch] whitespace-pre-line text-base leading-8 text-gray-700">
+              
+              <ReactMarkdown>{offer.description}</ReactMarkdown>   
+              
+            </span>
+            
           </DetailSection>
 
           <div className="mt-9 border-t border-gray-200 pt-5 text-sm leading-6 text-gray-600">
             <p>
-              Offre publiée sur <span className="font-bold text-black">{offer.source}</span>.
+              Offre publiée sur <span className="font-bold text-black">We Love Dev</span>.
               Overkill centralise l’annonce, mais la candidature se poursuit sur le site d’origine.
             </p>
           </div>
@@ -758,28 +851,6 @@ function DetailSection({ title, children }) {
       <h3 className="text-lg font-semibold tracking-[-0.01em] text-black">{title}</h3>
       <div className="mt-4">{children}</div>
     </section>
-  )
-}
-
-function CompanyMark({ offer, large = false }) {
-  const initials =
-    offer.companyInitials ||
-    offer.company
-      .split(' ')
-      .map((word) => word[0])
-      .join('')
-      .slice(0, 2)
-      .toLocaleUpperCase('fr')
-
-  return (
-    <span
-      className={`flex shrink-0 items-center justify-center rounded-lg border border-[#e7d8cc] bg-[#f4eee9] font-semibold text-[#5d3c25] ${
-        large ? 'h-14 w-14 text-base' : 'h-11 w-11 text-xs'
-      }`}
-      aria-hidden="true"
-    >
-      {initials}
-    </span>
   )
 }
 
@@ -839,10 +910,10 @@ function formatSalary(offer) {
   const formatter = new Intl.NumberFormat('fr-FR')
   const currency = offer.salaryCurrency || 'EUR'
   if (offer.salaryMin && offer.salaryMax) {
-    return `${formatter.format(offer.salaryMin)}–${formatter.format(offer.salaryMax)} ${currency}`
+    return `${formatter.format(offer.salaryMin)}K–${formatter.format(offer.salaryMax)}K ${currency}`
   }
 
-  return `${formatter.format(offer.salaryMin || offer.salaryMax)} ${currency}`
+  return `${formatter.format(offer.salaryMin  || offer.salaryMax)} ${currency}`
 }
 
 function formatPublishedDate(date) {

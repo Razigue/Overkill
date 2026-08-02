@@ -10,6 +10,9 @@ services:
       APP_SECRET: ${APP_SECRET:?APP_SECRET must be set in your local .env file}
       DATABASE_URL: ${POSTGRES_REMOTE_URL:?POSTGRES_REMOTE_URL must be set in your local .env file}
       MESSENGER_TRANSPORT_DSN: ${MESSENGER_TRANSPORT_DSN:-doctrine://default?auto_setup=0}
+      MAILER_DSN: ${MAILER_DSN:-null://null}
+      CONTACT_RECIPIENT: ${CONTACT_RECIPIENT:-contact@overkill.test}
+      CONTACT_SENDER: ${CONTACT_SENDER:-no-reply@overkill.test}
       CORS_ALLOW_ORIGIN: ${CORS_ALLOW_ORIGIN:-http://localhost:5173}
     volumes:
       - ./Overkill_Api:/app

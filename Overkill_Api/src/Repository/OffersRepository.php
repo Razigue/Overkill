@@ -5,18 +5,21 @@ namespace App\Repository;
 use App\Entity\Offers;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 
 /**
  * @extends ServiceEntityRepository<Offers>
  */
 class OffersRepository extends ServiceEntityRepository
 {
+
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, Offers::class);
     }
 
-    public function search(array $filters): array
+    public function search(array $filters, int $page = 1): Paginator
     {
         $qb = $this->createQueryBuilder('o')
 
@@ -75,7 +78,12 @@ class OffersRepository extends ServiceEntityRepository
                 ->setParameter('category', mb_strtolower($filters['category']));
         }
 
-        return $qb->getQuery()->getResult();
+        $perPage = 10;
+
+        return new Paginator(
+            $qb->setFirstResult(($page - 1) * $perPage)
+                ->setMaxResults($perPage)
+        );
     }
     //    /**
     //     * @return Offers[] Returns an array of Offers objects

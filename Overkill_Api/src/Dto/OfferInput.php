@@ -34,7 +34,7 @@ class OfferInput
     public ?string $city = null;
 
     #[Assert\Length(exactly: 2, exactMessage: "Le pays doit être un code ISO à 2 lettres.")]
-    public ?string $country = null;
+    public ?string $company = null;
 
     #[Assert\Collection(
         fields: [

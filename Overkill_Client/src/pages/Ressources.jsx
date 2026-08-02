@@ -1,4 +1,4 @@
-import PublicHeader from '../components/PublicHeader'
+import Header from '../components/Header'
 import Footer from '../components/Footer'
 import Background from '../assets/images/Overkill_Background.png'
 
@@ -34,7 +34,7 @@ const resources = [
 function Ressources() {
   return (
     <div className="flex min-h-screen flex-col bg-[#faf7f4] text-[#171717]">
-      <PublicHeader />
+      <Header />
 
       <main className="flex-1">
         <section
