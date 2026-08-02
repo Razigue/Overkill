@@ -15,7 +15,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use App\Entity\Offers;
-use DateTime;
 use DateTimeImmutable;
 
 final class OffersController extends AbstractController
@@ -85,42 +84,75 @@ final class OffersController extends AbstractController
             }
         }
 
-        $createOffer = new Offers();
-        $createOffer->setTitle($input->title);
-        $createOffer->setKind($input->kind);
-        $createOffer->setDescription($input->description);
-        $createOffer->setCompanyId($company);
-        $createOffer->setSourceId($source);
+        $externalUrl = rtrim(trim($input->externalUrl), '/');
+        $connection = $entityManager->getConnection();
 
-        foreach ($foundCategories as $category_id) {
-            $createOffer->addCategoryId($category_id);
-        }
+        [$offer, $status] = $connection->transactional(function () use (
+            $entityManager,
+            $source,
+            $company,
+            $foundCategories,
+            $input,
+            $externalUrl
+        ): array {
+            // Serialize concurrent imports of the same source offer. The
+            // UNIQUE constraint remains the final safety net.
+            $entityManager->getConnection()->executeQuery(
+                'SELECT pg_advisory_xact_lock(hashtextextended(:dedupeKey, 0))',
+                ['dedupeKey' => $source->getId() . ':' . $externalUrl]
+            );
 
-        $createOffer->setCity($input->city);
-        $createOffer->setCompany($input->company);
-        $createOffer->setIsRemote($input->isRemote);
-        $createOffer->setSalaryMin($input->salaryMin);
-        $createOffer->setSalaryMax($input->salaryMax);
-        $createOffer->setSalaryCurrency($input->salaryCurrency);
-        $createOffer->setContract($input->contract);
-        $createOffer->setExtractedSkills($input->extractedSkills);
-        $createOffer->setExternalUrl($input->externalUrl);
+            $offer = $entityManager->getRepository(Offers::class)->findOneBy([
+                'source_id' => $source,
+                'external_url' => $externalUrl,
+            ]);
+            $status = $offer === null ? Response::HTTP_CREATED : Response::HTTP_OK;
+            $offer ??= new Offers();
 
-        $createOffer->setLatitude($input->latitude);
-        $createOffer->setLongitude($input->longitude);
-        $createOffer->setPublishedAt(new DateTimeImmutable($input->publishedAt));
-        $createOffer->setStartsAt(new DateTimeImmutable($input->startsAt));
-        $createOffer->setEndsAt($input->endsAt === null ? null : new DateTimeImmutable($input->endsAt));
-        $createOffer->setCreatedAt(new DateTimeImmutable());
-        $createOffer->setUpdatedAt(new DateTimeImmutable());
-        $createOffer->setIsDuplicate(false);
-        $createOffer->setViewsCount(0);
-        $entityManager->persist($createOffer);
-        $entityManager->flush();
+            $offer->setTitle($input->title);
+            $offer->setKind($input->kind);
+            $offer->setDescription($input->description);
+            $offer->setCompanyId($company);
+            $offer->setSourceId($source);
+
+            foreach ($offer->getCategoryId()->toArray() as $category) {
+                $offer->removeCategoryId($category);
+            }
+            foreach ($foundCategories as $category) {
+                $offer->addCategoryId($category);
+            }
+
+            $offer->setCity($input->city);
+            $offer->setCompany($input->company);
+            $offer->setIsRemote($input->isRemote === null ? null : json_encode($input->isRemote, JSON_THROW_ON_ERROR));
+            $offer->setSalaryMin($input->salaryMin);
+            $offer->setSalaryMax($input->salaryMax);
+            $offer->setSalaryCurrency($input->salaryCurrency);
+            $offer->setContract($input->contract);
+            $offer->setExtractedSkills($input->extractedSkills);
+            $offer->setExternalUrl($externalUrl);
+            $offer->setLatitude($input->latitude);
+            $offer->setLongitude($input->longitude);
+            $offer->setPublishedAt(new DateTimeImmutable($input->publishedAt));
+            $offer->setStartsAt(new DateTimeImmutable($input->startsAt));
+            $offer->setEndsAt($input->endsAt === null ? null : new DateTimeImmutable($input->endsAt));
+            $offer->setUpdatedAt(new DateTimeImmutable());
+            $offer->setIsDuplicate(false);
+
+            if ($status === Response::HTTP_CREATED) {
+                $offer->setCreatedAt(new DateTimeImmutable());
+                $offer->setViewsCount(0);
+                $entityManager->persist($offer);
+            }
+
+            $entityManager->flush();
+
+            return [$offer, $status];
+        });
 
         return $this->json(
-            $createOffer,
-            Response::HTTP_CREATED,
+            $offer,
+            $status,
             [],
             ['groups' => 'offers:read']
         );

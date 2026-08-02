@@ -1128,6 +1128,7 @@ function createPlainTextPreview(description) {
     .replace(/(^|[^_])_([^_\n]+)_(?!_)/g, '$1$2')
     .replace(/~~([^~\n]+)~~/g, '$1')
     .replace(/`([^`\n]+)`/g, '$1')
+    .replace(/\\([!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~])/g, '$1')
     .replace(/\s+/g, ' ')
     .trim()
 }
