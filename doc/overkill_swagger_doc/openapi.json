@@ -1,0 +1,1606 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Overkill API: Job Aggregator",
+    "version": "1.0.0-2026.08.02",
+    "description": "Swagger/OpenAPI documentation for the Symfony **Overkill** API (`Overkill_Api/`), generated\nfrom **real** tests executed on 2026-08-01 and 2026-08-02 against an isolated Docker instance\n(backend + fresh PostgreSQL in a dedicated Docker network, fully disconnected from the\nproject's real database). Every request/response example below comes from an HTTP call that\nwas actually executed.\n\nNote: the application itself is French-facing. User-facing strings returned by the API\n(validation messages, error messages, field values) are in French in the examples below,\nexactly as observed. Only the documentation text (summaries, descriptions) is in English.\n\n## Methodology\n1. `POST /api/register` then `POST /api/login` to obtain a JWT.\n2. The JWT is sent in the `Authorization: Bearer <token>` header on every protected route.\n3. Each route was tested in a logical order (creation before reading before deletion).\n4. For `DELETE` routes, only resources created during the test session were deleted (offer,\n   favorite, user↔skill association). The test database itself was then fully destroyed.\n5. `POST /api/admin/trigger-scraping` requires `ROLE_ADMIN`, which no API route can grant.\n   A test user was promoted to `ROLE_ADMIN` with a direct SQL update against the isolated\n   test database only. The real n8n webhook was never called: a local mock HTTP server\n   stood in for it on the isolated Docker network to exercise the success path safely.\n",
+    "contact": {
+      "name": "Job Aggregator / OVERKILL"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Local instance (docker compose up, see project README.md)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "Registration, login, current profile"
+    },
+    {
+      "name": "Offers",
+      "description": "Browsing, creating and deleting job offers"
+    },
+    {
+      "name": "User Skills",
+      "description": "Skills associated with the current user's profile"
+    },
+    {
+      "name": "Favorites",
+      "description": "Offers favorited by the current user"
+    },
+    {
+      "name": "CVs",
+      "description": "Upload and listing of the current user's CVs"
+    },
+    {
+      "name": "Contact",
+      "description": "Public contact form"
+    },
+    {
+      "name": "Admin",
+      "description": "Admin-only operations (require ROLE_ADMIN)"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/api/register": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Create a user account",
+        "description": "Public route (`PUBLIC_ACCESS`). First step of the test flow.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationInput"
+              },
+              "example": {
+                "email": "camille.dubois@overkill-test.fr",
+                "password": "MotDePasse2026!",
+                "firstName": "Camille",
+                "lastName": "Dubois"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterResponse"
+                },
+                "example": {
+                  "message": "Utilisateur inscrit avec succès !",
+                  "user": {
+                    "id": 1,
+                    "email": "camille.dubois@overkill-test.fr",
+                    "firstname": "Camille",
+                    "lastname": "Dubois"
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "An account already exists with this email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorObject"
+                },
+                "example": {
+                  "error": "Un compte existe déjà avec cette adresse mail."
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed (invalid email, password too short, empty fields...)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                },
+                "example": {
+                  "type": "https://symfony.com/errors/validation",
+                  "title": "Validation Failed",
+                  "status": 422,
+                  "detail": "email: L'adresse email n'est pas valide.\npassword: Le mot de passe doit comporter au moins 8 caractères.\nfirstName: Le prénom est obligatoire.\nlastName: Le nom est obligatoire.",
+                  "violations": [
+                    {
+                      "propertyPath": "email",
+                      "title": "L'adresse email n'est pas valide."
+                    },
+                    {
+                      "propertyPath": "password",
+                      "title": "Le mot de passe doit comporter au moins 8 caractères."
+                    },
+                    {
+                      "propertyPath": "firstName",
+                      "title": "Le prénom est obligatoire."
+                    },
+                    {
+                      "propertyPath": "lastName",
+                      "title": "Le nom est obligatoire."
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Log in and obtain a JWT token",
+        "description": "Public route intercepted by the Symfony `json_login` firewall (pattern `^/api/login`).\nThe `SecurityController::login()` controller is **never called**: the response is\ngenerated by `lexik_jwt_authentication.handler.authentication_success`.\n",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginInput"
+              },
+              "example": {
+                "email": "camille.dubois@overkill-test.fr",
+                "password": "MotDePasse2026!"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                },
+                "example": {
+                  "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpYXQiOjE3ODU1OTMyNTQsImV4cCI6MTc4NTU5Njg1NCwicm9sZXMiOlsiUk9MRV9VU0VSIl0sInVzZXJuYW1lIjoiY2FtaWxsZS5kdWJvaXNAb3ZlcmtpbGwtdGVzdC5mciJ9.(truncated RS256 signature, real token is 516 characters)"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JwtErrorResponse"
+                },
+                "example": {
+                  "code": 401,
+                  "message": "Invalid credentials."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Current user's profile",
+        "responses": {
+          "200": {
+            "description": "Current profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPublic"
+                },
+                "example": {
+                  "id": 1,
+                  "email": "camille.dubois@overkill-test.fr",
+                  "firstname": "Camille",
+                  "lastname": "Dubois"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token / invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JwtErrorResponse"
+                },
+                "example": {
+                  "code": 401,
+                  "message": "JWT Token not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/check/database": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Check the database connection status",
+        "responses": {
+          "200": {
+            "description": "Connection test result (always 200, even if the connection failed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckDatabaseResponse"
+                },
+                "example": {
+                  "status": true,
+                  "message": "failed."
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token / invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JwtErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/offers": {
+      "get": {
+        "tags": [
+          "Offers"
+        ],
+        "summary": "List offers (paginated, filterable)",
+        "description": "Public route (`PUBLIC_ACCESS`, GET only). Fixed pagination of 3 results per page.\nOnly shows offers published less than 30 days ago\n(`o.published_at >= now() - 30 days`).\n",
+        "security": [],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Full-text search on title and description",
+            "schema": {
+              "type": "string"
+            },
+            "example": "Symfony"
+          },
+          {
+            "name": "city",
+            "in": "query",
+            "description": "Exact match on city, case-insensitive",
+            "schema": {
+              "type": "string"
+            },
+            "example": "Lyon"
+          },
+          {
+            "name": "country",
+            "in": "query",
+            "description": "Exact match on country code (ISO 2 letters)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "company",
+            "in": "query",
+            "description": "Partial match on the linked company's name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contract",
+            "in": "query",
+            "description": "Exact match: CDI, CDD, stage, alternance, freelance",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "description": "Exact match: job, internship, apprenticeship",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "remote",
+            "in": "query",
+            "description": "Filter on the remote-work frequency field",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "salaryMin",
+            "in": "query",
+            "description": "Minimum salary, compared against COALESCE(salary_max, salary_min)",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Exact match on category name, case-insensitive",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (default 1)",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of offers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Offer"
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "totalPages": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "items": [
+                    {
+                      "title": "Développeur Full Stack Symfony/React",
+                      "kind": "job",
+                      "description": "Au sein de notre équipe produit, vous participerez au développement de nouvelles fonctionnalités sur notre plateforme SaaS en Symfony et React.",
+                      "city": "Lyon",
+                      "company": "FR",
+                      "latitude": 45.764,
+                      "longitude": 4.8357,
+                      "contract": "CDI",
+                      "companyId": {
+                        "name": "Doctolib"
+                      },
+                      "isRemote": null,
+                      "publishedAt": "2026-08-01T00:00:00+00:00",
+                      "startsAt": "2026-09-01T00:00:00+00:00",
+                      "endsAt": null,
+                      "salaryMin": 38000,
+                      "salaryMax": 46000,
+                      "salaryCurrency": "EUR",
+                      "categoryId": [
+                        []
+                      ],
+                      "extractedSkills": [
+                        "Symfony",
+                        "React",
+                        "PostgreSQL"
+                      ],
+                      "sourceId": [],
+                      "duplicate": false,
+                      "createdAt": "2026-08-01T14:15:10+00:00",
+                      "updatedAt": "2026-08-01T14:15:10+00:00"
+                    }
+                  ],
+                  "pagination": {
+                    "page": 1,
+                    "total": 1,
+                    "totalPages": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Offers"
+        ],
+        "summary": "Create an offer",
+        "description": "Intended for the collector/scraper, not the end user (see the DTO's comment). Requires a `company_id`, `source_id` and `category_id` that already exist in the database (no public endpoint allows creating `Companies`/`Sources`/`Categories`).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferInput"
+              },
+              "example": {
+                "title": "Développeur Full Stack Symfony/React",
+                "kind": "job",
+                "description": "Au sein de notre équipe produit, vous participerez au développement de nouvelles fonctionnalités sur notre plateforme SaaS en Symfony et React.",
+                "company_id": 1,
+                "city": "Lyon",
+                "country": "FR",
+                "isRemote": null,
+                "latitude": 45.764,
+                "longitude": 4.8357,
+                "publishedAt": "2026-08-01T00:00:00+00:00",
+                "startsAt": "2026-09-01T00:00:00+00:00",
+                "endsAt": null,
+                "salaryMin": 38000,
+                "salaryMax": 46000,
+                "salaryCurrency": "EUR",
+                "contract": "CDI",
+                "category_id": [
+                  1
+                ],
+                "extractedSkills": [
+                  "Symfony",
+                  "React",
+                  "PostgreSQL"
+                ],
+                "source_id": 1,
+                "externalUrl": "https://www.doctolib.fr/carrieres/developpeur-fullstack-symfony-react"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Offer created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Offer"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`company_id`, `source_id` or one of the `category_id` values does not match any existing resource. Response is a raw JSON string, not an object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "L'id reçu ne correspond à rien"
+              }
+            }
+          },
+          "422": {
+            "description": "DTO validation failed (missing required field, invalid choice...)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblem"
+                },
+                "example": {
+                  "type": "https://symfony.com/errors/validation",
+                  "title": "Validation Failed",
+                  "status": 422,
+                  "detail": "title: Le titre est obligatoire.\nkind: Le type d'offre est obligatoire.\ncompany_id: L'id de l'entreprise est obligatoire.\npublishedAt: La date de publication est obligatoire.\nstartsAt: La date de début est obligatoire.\ncontract: Le type de contrat est obligatoire.\nsource_id: La source est obligatoire.\nexternalUrl: L'URL de l'offre est obligatoire."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/offers/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          },
+          "example": 1
+        }
+      ],
+      "get": {
+        "tags": [
+          "Offers"
+        ],
+        "summary": "Get an offer by ID",
+        "description": "Public route (`PUBLIC_ACCESS`).",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Offer found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Offer"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Offer not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorObject"
+                },
+                "example": {
+                  "error": "Aucune offre trouvee"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Offers"
+        ],
+        "summary": "Delete an offer",
+        "responses": {
+          "204": {
+            "description": "Offer deleted (no response body)"
+          },
+          "404": {
+            "description": "Offer not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorObject"
+                },
+                "example": {
+                  "error": "Aucune offre trouvee"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user/skills": {
+      "get": {
+        "tags": [
+          "User Skills"
+        ],
+        "summary": "List the current user's skills",
+        "responses": {
+          "200": {
+            "description": "List of skills",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Skill"
+                  }
+                },
+                "example": [
+                  {
+                    "id": 1,
+                    "name": "TypeScript"
+                  }
+                ]
+              }
+            }
+          },
+          "401": {
+            "description": "No token / invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JwtErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "User Skills"
+        ],
+        "summary": "Add a skill to the profile",
+        "description": "If the skill (by name) doesn't exist yet globally, it is created; otherwise the existing one is reused and associated with the user.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "name": "TypeScript"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Skill added",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Compétence ajoutée avec succès",
+                  "skill": {
+                    "id": 1,
+                    "name": "TypeScript"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Skill name missing or empty",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorObject"
+                },
+                "example": {
+                  "error": "Le nom de la compétence est requis."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user/skills/{id}": {
+      "delete": {
+        "tags": [
+          "User Skills"
+        ],
+        "summary": "Remove a skill from the profile",
+        "description": "Only removes the user↔skill association, never the global skill (shared across users). Idempotent: returns 200 even if the user didn't have this skill associated.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Skill removed (or already absent from the profile)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Compétence supprimée avec succès"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/userfav": {
+      "get": {
+        "tags": [
+          "Favorites"
+        ],
+        "summary": "List the current user's favorite offers",
+        "responses": {
+          "200": {
+            "description": "List of favorites (with the nested offer)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserFavorite"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Favorites"
+        ],
+        "summary": "Add an offer to favorites",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "offer_id"
+                ],
+                "properties": {
+                  "offer_id": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "example": {
+                "offer_id": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Favorite created (no response body)"
+          },
+          "404": {
+            "description": "The referenced offer does not exist (raw JSON string)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Aucune offre favorite trouvé"
+              }
+            }
+          },
+          "409": {
+            "description": "The offer is already a favorite for this user (raw JSON string)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "L'offre est déjà en favori"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/userfav/{id}": {
+      "delete": {
+        "tags": [
+          "Favorites"
+        ],
+        "summary": "Remove a favorite",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Favorite removed (no response body)"
+          },
+          "403": {
+            "description": "The favorite belongs to another user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorObject"
+                },
+                "example": {
+                  "error": "Accès refusé"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Favorite not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorObject"
+                },
+                "example": {
+                  "error": "Aucun favori trouvé"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cvs": {
+      "get": {
+        "tags": [
+          "CVs"
+        ],
+        "summary": "List the current user's CVs",
+        "responses": {
+          "200": {
+            "description": "List of CVs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Cv"
+                  }
+                },
+                "example": [
+                  {
+                    "id": 1,
+                    "originalName": "CV_Camille_Dubois.pdf",
+                    "filePath": "/uploads/cvs/CV-Camille-Dubois-6a6dffa393288.pdf",
+                    "uploadedAt": "01/08/2026"
+                  }
+                ]
+              }
+            }
+          },
+          "401": {
+            "description": "No token / invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JwtErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cvs/upload": {
+      "post": {
+        "tags": [
+          "CVs"
+        ],
+        "summary": "Upload a CV",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "PDF, DOC or DOCX only"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "CV saved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "CV envoyé avec succès !",
+                  "cv": {
+                    "id": 1,
+                    "originalName": "CV_Camille_Dubois.pdf",
+                    "filePath": "/uploads/cvs/CV-Camille-Dubois-6a6dffa393288.pdf",
+                    "uploadedAt": "01/08/2026"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No file provided, or disallowed extension",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorObject"
+                },
+                "examples": {
+                  "no_file": {
+                    "value": {
+                      "error": "Aucun fichier fourni"
+                    }
+                  },
+                  "extension_refused": {
+                    "value": {
+                      "error": "Format non autorisé (PDF, DOC, DOCX uniquement)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/contact": {
+      "post": {
+        "tags": [
+          "Contact"
+        ],
+        "summary": "Send a message through the contact form",
+        "description": "Public route (`PUBLIC_ACCESS`). Sends an email via the Symfony Mailer to the address configured in `CONTACT_RECIPIENT`, with `Reply-To` set to the sender's own address. Does not persist anything: there is no corresponding `DELETE` route.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactInput"
+              },
+              "example": {
+                "name": "Julien Marchand",
+                "email": "julien.marchand@laposte.net",
+                "subject": "Question sur une offre publiée",
+                "message": "Bonjour, je souhaiterais savoir si l'offre de développeur backend chez TechCorp est toujours disponible. Merci d'avance pour votre réponse."
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Message sent",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Votre message a bien été envoyé."
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request body is not valid JSON",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorObject"
+                },
+                "example": {
+                  "error": "La demande est invalide."
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed (empty field, invalid email, field too long...). Unlike other controllers, the individual violations are not detailed in the response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorObject"
+                },
+                "example": {
+                  "error": "Merci de vérifier les informations saisies."
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The mail transport failed to send the message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorObject"
+                },
+                "example": {
+                  "error": "Le message n'a pas pu être envoyé. Réessayez dans quelques instants."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/trigger-scraping": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Trigger the n8n scraping workflow",
+        "description": "Requires `ROLE_ADMIN` (`#[IsGranted('ROLE_ADMIN')]` on the controller, plus an `access_control` rule on `^/api/admin`). Calls the n8n webhook configured in `N8N_WEBHOOK_URL`, forwarding `N8N_WEBHOOK_SECRET` in the `X-Webhook-Secret` header.",
+        "responses": {
+          "200": {
+            "description": "Webhook call succeeded",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Workflow de scraping déclenché avec succès !"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token / invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JwtErrorResponse"
+                },
+                "example": {
+                  "code": 401,
+                  "message": "JWT Token not found"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated user does not have ROLE_ADMIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://tools.ietf.org/html/rfc2616#section-10",
+                  "title": "An error occurred",
+                  "status": 403,
+                  "detail": "Access Denied. The user doesn't have ROLE_ADMIN."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`N8N_WEBHOOK_URL` is not configured, or the HTTP call to n8n failed (timeout is 5 seconds).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorObject"
+                },
+                "examples": {
+                  "not_configured": {
+                    "value": {
+                      "error": "L'URL du webhook n8n n'est pas configurée dans le .env"
+                    }
+                  },
+                  "call_failed": {
+                    "value": {
+                      "error": "Erreur lors de la communication avec n8n : ..."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Obtained via `POST /api/login`. Observed lifetime: 3600 seconds (`iat`/`exp` in the tested JWT payload). Send it in the `Authorization: Bearer <token>` header."
+      }
+    },
+    "schemas": {
+      "RegistrationInput": {
+        "type": "object",
+        "required": [
+          "email",
+          "password",
+          "firstName",
+          "lastName"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 8
+          },
+          "firstName": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "lastName": {
+            "type": "string",
+            "maxLength": 80
+          }
+        }
+      },
+      "LoginInput": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "format": "password"
+          }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "RS256-signed JWT"
+          }
+        }
+      },
+      "UserPublic": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "firstname": {
+            "type": "string"
+          },
+          "lastname": {
+            "type": "string"
+          }
+        }
+      },
+      "RegisterResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserPublic"
+          }
+        }
+      },
+      "CheckDatabaseResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "JwtErrorResponse": {
+        "type": "object",
+        "description": "Standard error format from the Lexik JWT bundle",
+        "properties": {
+          "code": {
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "ErrorObject": {
+        "type": "object",
+        "description": "Custom error format used by most of the app's controllers",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "ValidationProblem": {
+        "type": "object",
+        "description": "RFC 7807 (Problem Details) format returned by Symfony for `#[MapRequestPayload]` validation failures. In the `dev` environment, the real response also includes `class` and `trace` (full stack trace), omitted here, absent in `prod`.",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "violations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "propertyPath": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "template": {
+                  "type": "string"
+                },
+                "parameters": {
+                  "type": "object"
+                },
+                "type": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Skill": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Cv": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "originalName": {
+            "type": "string"
+          },
+          "filePath": {
+            "type": "string"
+          },
+          "uploadedAt": {
+            "type": "string",
+            "description": "d/m/Y format, not ISO 8601"
+          }
+        }
+      },
+      "Companies": {
+        "type": "object",
+        "description": "Only the `name` field is exposed in the `offers:read` group (`Companies::getName()` has the `#[Groups('offers:read')]` attribute, the other getters don't).",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Offer": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "job",
+              "internship",
+              "apprenticeship"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "nullable": true
+          },
+          "company": {
+            "type": "string",
+            "nullable": true,
+            "description": "Country code (ISO) associated with the offer."
+          },
+          "latitude": {
+            "type": "number",
+            "nullable": true
+          },
+          "longitude": {
+            "type": "number",
+            "nullable": true
+          },
+          "contract": {
+            "type": "string",
+            "enum": [
+              "CDI",
+              "CDD",
+              "stage",
+              "alternance",
+              "freelance"
+            ]
+          },
+          "companyId": {
+            "$ref": "#/components/schemas/Companies"
+          },
+          "isRemote": {
+            "type": "string",
+            "nullable": true
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "salaryMin": {
+            "type": "integer",
+            "nullable": true
+          },
+          "salaryMax": {
+            "type": "integer",
+            "nullable": true
+          },
+          "salaryCurrency": {
+            "type": "string",
+            "nullable": true
+          },
+          "categoryId": {
+            "type": "array",
+            "items": {}
+          },
+          "extractedSkills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sourceId": {
+            "type": "array",
+            "items": {}
+          },
+          "externalUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "duplicate": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "OfferInput": {
+        "type": "object",
+        "description": "Offer creation payload, intended for the collector/scraper.",
+        "required": [
+          "title",
+          "kind",
+          "company_id",
+          "publishedAt",
+          "startsAt",
+          "contract",
+          "source_id",
+          "externalUrl"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "job",
+              "internship",
+              "apprenticeship"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "company_id": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "city": {
+            "type": "string",
+            "maxLength": 120,
+            "nullable": true
+          },
+          "country": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 2,
+            "description": "ISO 2-letter code"
+          },
+          "isRemote": {
+            "nullable": true
+          },
+          "latitude": {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90,
+            "nullable": true
+          },
+          "longitude": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180,
+            "nullable": true
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "salaryMin": {
+            "type": "integer",
+            "minimum": 0,
+            "nullable": true
+          },
+          "salaryMax": {
+            "type": "integer",
+            "minimum": 0,
+            "nullable": true
+          },
+          "salaryCurrency": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 3,
+            "nullable": true
+          },
+          "contract": {
+            "type": "string",
+            "enum": [
+              "CDI",
+              "CDD",
+              "stage",
+              "alternance",
+              "freelance"
+            ]
+          },
+          "category_id": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "extractedSkills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source_id": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "externalUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
+      "UserFavorite": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "offerId": {
+            "$ref": "#/components/schemas/Offer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ContactInput": {
+        "type": "object",
+        "required": [
+          "name",
+          "email",
+          "subject",
+          "message"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 180
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 150
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 5000
+          }
+        }
+      }
+    }
+  }
+}
