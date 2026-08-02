@@ -20,20 +20,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Run Gitleaks Analysis
+      # Téléchargement et extraction locale (sans sudo, sans wget)
+      - name: Install Gitleaks CLI Locally
         run: |
-          docker run --rm \
-            --volume "$PWD:/repo" \
-            --workdir /repo \
-            ghcr.io/gitleaks/gitleaks:v8.18.2 \
-            detect --source /repo --verbose --redact || true
+          curl -sSLo gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.18.2/gitleaks_8.18.2_linux_x64.tar.gz
+          tar -xf gitleaks.tar.gz
+          chmod +x gitleaks
+
+      # Analyse en ciblant directement le binaire local
+      - name: Run Gitleaks Analysis
+        run: ./gitleaks detect --verbose --redact || true
 
   test-backend-SecurityController:
+    needs: secrets-scan
     runs-on: self-hosted 
     env:
       APP_ENV: test
       APP_SECRET: "ceci_est_un_secret_de_test_12345"
-      DATABASE_URL: "sqlite:///${{ runner.temp }}/overkill-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}.db"
+      DATABASE_URL: "sqlite:///%kernel.project_dir%/var/data.db"
       DEFAULT_URI: "http://localhost"
       MESSENGER_TRANSPORT_DSN: "in-memory://"
       MAILER_DSN: "null://null"
@@ -73,7 +77,7 @@ jobs:
           else
             echo "APP_ENV=test" > .env
             echo "APP_SECRET=ceci_est_un_secret_de_test_12345" >> .env
-            echo "DATABASE_URL=$DATABASE_URL" >> .env
+            echo "DATABASE_URL=sqlite:///%kernel.project_dir%/var/data.db" >> .env
             echo "DEFAULT_URI=http://localhost" >> .env
             echo "MESSENGER_TRANSPORT_DSN=in-memory://" >> .env
             echo "MAILER_DSN=null://null" >> .env
@@ -95,11 +99,13 @@ jobs:
         run: vendor/bin/phpunit tests/Controller/SecurityControllerTest.php
 
   test-backend-CvController:
+    needs: test-backend-SecurityController
+    if: ${{ !cancelled() }} # S'exécute même si SecurityController échoue
     runs-on: self-hosted 
     env:
       APP_ENV: test
       APP_SECRET: "ceci_est_un_secret_de_test_12345"
-      DATABASE_URL: "sqlite:///${{ runner.temp }}/overkill-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}.db"
+      DATABASE_URL: "sqlite:///%kernel.project_dir%/var/data.db"
       DEFAULT_URI: "http://localhost"
       MESSENGER_TRANSPORT_DSN: "in-memory://"
       MAILER_DSN: "null://null"
@@ -139,7 +145,7 @@ jobs:
           else
             echo "APP_ENV=test" > .env
             echo "APP_SECRET=ceci_est_un_secret_de_test_12345" >> .env
-            echo "DATABASE_URL=$DATABASE_URL" >> .env
+            echo "DATABASE_URL=sqlite:///%kernel.project_dir%/var/data.db" >> .env
             echo "DEFAULT_URI=http://localhost" >> .env
             echo "MESSENGER_TRANSPORT_DSN=in-memory://" >> .env
             echo "MAILER_DSN=null://null" >> .env
@@ -161,11 +167,13 @@ jobs:
         run: vendor/bin/phpunit tests/Controller/CvControllerTest.php
 
   test-backend-OffersController:
+    needs: test-backend-SecurityController
+    if: ${{ !cancelled() }} # S'exécute même si SecurityController échoue
     runs-on: self-hosted 
     env:
       APP_ENV: test
       APP_SECRET: "ceci_est_un_secret_de_test_12345"
-      DATABASE_URL: "sqlite:///${{ runner.temp }}/overkill-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}.db"
+      DATABASE_URL: "sqlite:///%kernel.project_dir%/var/data.db"
       DEFAULT_URI: "http://localhost"
       MESSENGER_TRANSPORT_DSN: "in-memory://"
       MAILER_DSN: "null://null"
@@ -205,7 +213,7 @@ jobs:
           else
             echo "APP_ENV=test" > .env
             echo "APP_SECRET=ceci_est_un_secret_de_test_12345" >> .env
-            echo "DATABASE_URL=$DATABASE_URL" >> .env
+            echo "DATABASE_URL=sqlite:///%kernel.project_dir%/var/data.db" >> .env
             echo "DEFAULT_URI=http://localhost" >> .env
             echo "MESSENGER_TRANSPORT_DSN=in-memory://" >> .env
             echo "MAILER_DSN=null://null" >> .env
@@ -227,11 +235,13 @@ jobs:
         run: vendor/bin/phpunit tests/Controller/OffersControllerTest.php
 
   test-backend-UserSkillController:
+    needs: test-backend-SecurityController
+    if: ${{ !cancelled() }} # S'exécute même si SecurityController échoue
     runs-on: self-hosted 
     env:
       APP_ENV: test
       APP_SECRET: "ceci_est_un_secret_de_test_12345"
-      DATABASE_URL: "sqlite:///${{ runner.temp }}/overkill-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}.db"
+      DATABASE_URL: "sqlite:///%kernel.project_dir%/var/data.db"
       DEFAULT_URI: "http://localhost"
       MESSENGER_TRANSPORT_DSN: "in-memory://"
       MAILER_DSN: "null://null"
@@ -271,7 +281,7 @@ jobs:
           else
             echo "APP_ENV=test" > .env
             echo "APP_SECRET=ceci_est_un_secret_de_test_12345" >> .env
-            echo "DATABASE_URL=$DATABASE_URL" >> .env
+            echo "DATABASE_URL=sqlite:///%kernel.project_dir%/var/data.db" >> .env
             echo "DEFAULT_URI=http://localhost" >> .env
             echo "MESSENGER_TRANSPORT_DSN=in-memory://" >> .env
             echo "MAILER_DSN=null://null" >> .env
@@ -293,11 +303,13 @@ jobs:
         run: vendor/bin/phpunit tests/Controller/UserSkillControllerTest.php
 
   test-backend-UserFavoriteController:
+    needs: test-backend-SecurityController
+    if: ${{ !cancelled() }} # S'exécute même si SecurityController échoue
     runs-on: self-hosted 
     env:
       APP_ENV: test
       APP_SECRET: "ceci_est_un_secret_de_test_12345"
-      DATABASE_URL: "sqlite:///${{ runner.temp }}/overkill-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}.db"
+      DATABASE_URL: "sqlite:///%kernel.project_dir%/var/data.db"
       DEFAULT_URI: "http://localhost"
       MESSENGER_TRANSPORT_DSN: "in-memory://"
       MAILER_DSN: "null://null"
@@ -337,7 +349,7 @@ jobs:
           else
             echo "APP_ENV=test" > .env
             echo "APP_SECRET=ceci_est_un_secret_de_test_12345" >> .env
-            echo "DATABASE_URL=$DATABASE_URL" >> .env
+            echo "DATABASE_URL=sqlite:///%kernel.project_dir%/var/data.db" >> .env
             echo "DEFAULT_URI=http://localhost" >> .env
             echo "MESSENGER_TRANSPORT_DSN=in-memory://" >> .env
             echo "MAILER_DSN=null://null" >> .env
