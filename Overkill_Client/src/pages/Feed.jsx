@@ -12,7 +12,10 @@ import heartIcon from '../assets/icons/heart.svg'
 import heartFilledIcon from '../assets/icons/heart-filled.svg'
 import arrowLeftIcon from '../assets/icons/arrow-left.svg'
 import externalLinkIcon from '../assets/icons/external-link.svg'
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown from 'react-markdown'
+import rehypeRaw from 'rehype-raw'
+import rehypeSanitize from 'rehype-sanitize'
+import remarkGfm from 'remark-gfm'
 
 
 
@@ -684,9 +687,7 @@ function OfferCard({ offer, isSelected, isFavorite, onSelect, onFavorite }) {
               </span>
             </div>
 
-            <span className="mt-3 line-clamp-2 max-w-[68ch] text-sm leading-6 text-gray-600">
-              <ReactMarkdown>{offer.description}</ReactMarkdown>
-            </span>
+            <OfferDescription description={offer.description} preview />
 
             <div className="mt-4 flex flex-wrap items-end justify-between gap-3 border-t border-gray-100 pt-3">
               <p className="text-xs leading-5 text-gray-500">
@@ -803,13 +804,7 @@ function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite }) {
           </DetailSection>
 
           <DetailSection title="Résumé de l’offre">
-            
-            <span className="max-w-[70ch] whitespace-pre-line text-base leading-8 text-gray-700">
-              
-              <ReactMarkdown>{offer.description}</ReactMarkdown>   
-              
-            </span>
-            
+            <OfferDescription description={offer.description} />
           </DetailSection>
 
           <div className="mt-9 border-t border-gray-200 pt-5 text-sm leading-6 text-gray-600">
@@ -851,6 +846,31 @@ function DetailSection({ title, children }) {
       <h3 className="text-lg font-semibold tracking-[-0.01em] text-black">{title}</h3>
       <div className="mt-4">{children}</div>
     </section>
+  )
+}
+
+function OfferDescription({ description, preview = false }) {
+  return (
+    <div
+      className={
+        preview
+          ? 'mt-3 line-clamp-2 max-w-[68ch] text-sm leading-6 text-gray-600'
+          : 'max-w-[70ch] space-y-4 [overflow-wrap:anywhere] text-base leading-8 text-gray-700 [&_a]:font-semibold [&_a]:text-[#8a542d] [&_a]:underline [&_a]:underline-offset-4 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_ol_li]:list-decimal [&_strong]:font-semibold [&_strong]:text-black'
+      }
+    >
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeRaw, rehypeSanitize]}
+        components={{
+          a: ({ node, ...props }) => {
+            void node
+            return <a {...props} target="_blank" rel="noreferrer noopener" />
+          },
+        }}
+      >
+        {description || 'Description non renseignée.'}
+      </ReactMarkdown>
+    </div>
   )
 }
 
