@@ -5,6 +5,7 @@ import Contact from './pages/Contact.jsx'
 import Ressources from './pages/Ressources.jsx'
 import GuideOffres from './pages/GuideOffres.jsx'
 import GuideCv from './pages/GuideCv.jsx'
+import AnalyseAts from './pages/AnalyseAts.jsx'
 import Feed from './pages/Feed.jsx'
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
         <Route path="/ressources" element={<Ressources />} />
         <Route path="/ressources/offres" element={<GuideOffres />} />
         <Route path="/ressources/cv" element={<GuideCv />} />
+        <Route path="/ressources/analyse-ats" element={<AnalyseAts />} />
         <Route path="/feed" element={<Feed />} />
       </Routes>
     </BrowserRouter>

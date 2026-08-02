@@ -161,7 +161,10 @@ function GuideCv() {
                 <p className="text-sm font-bold uppercase tracking-wide text-[#ebc09d]">À retenir</p>
                 <h2 className="mt-3 text-3xl font-black leading-tight">Un bon CV facilite la compréhension de votre valeur.</h2>
                 <p className="mt-4 max-w-2xl leading-7 text-gray-300">Restez honnête, sélectionnez ce qui est pertinent et adaptez votre document à chaque opportunité.</p>
-                <a href="/ressources/offres" className="mt-6 inline-flex rounded-xl bg-[#d2915c] px-5 py-3 text-sm font-bold text-white transition hover:bg-white hover:text-black">Choisir une offre</a>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <a href="/ressources/analyse-ats" className="inline-flex rounded-xl bg-[#d2915c] px-5 py-3 text-sm font-bold text-white transition hover:bg-white hover:text-black">Analyser mon CV</a>
+                  <a href="/ressources/offres" className="inline-flex rounded-xl border border-white/40 px-5 py-3 text-sm font-bold text-white transition hover:border-white hover:bg-white hover:text-black">Choisir une offre</a>
+                </div>
               </section>
             </div>
           </div>
