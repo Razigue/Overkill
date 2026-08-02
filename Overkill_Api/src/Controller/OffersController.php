@@ -7,6 +7,7 @@ use App\Repository\OffersRepository;
 use App\Repository\SourcesRepository;
 use App\Repository\CategoriesRepository;
 use App\Repository\CompaniesRepository;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -93,14 +94,18 @@ final class OffersController extends AbstractController
             $company,
             $foundCategories,
             $input,
-            $externalUrl
+            $externalUrl,
+            $connection
         ): array {
             // Serialize concurrent imports of the same source offer. The
-            // UNIQUE constraint remains the final safety net.
-            $entityManager->getConnection()->executeQuery(
-                'SELECT pg_advisory_xact_lock(hashtextextended(:dedupeKey, 0))',
-                ['dedupeKey' => $source->getId() . ':' . $externalUrl]
-            );
+            // UNIQUE constraint remains the final safety net. Advisory locks
+            // are PostgreSQL-specific, so SQLite test environments skip them.
+            if ($connection->getDatabasePlatform() instanceof PostgreSQLPlatform) {
+                $connection->executeQuery(
+                    'SELECT pg_advisory_xact_lock(hashtextextended(:dedupeKey, 0))',
+                    ['dedupeKey' => $source->getId() . ':' . $externalUrl]
+                );
+            }
 
             $offer = $entityManager->getRepository(Offers::class)->findOneBy([
                 'source_id' => $source,
