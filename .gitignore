@@ -1,0 +1,15 @@
+node_modules/
+
+# Local environment files
+.env
+.env.local
+.env.*.local
+Overkill_Api/.env.local
+Overkill_Api/.env.*.local
+Overkill_Client/.env.local
+Overkill_Client/.env.*.local
+vendor
+/vendor
+
+# Secrets
+Overkill_Api/config/secrets/prod/prod.decrypt.private.php

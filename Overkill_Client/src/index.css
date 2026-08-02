@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+@keyframes login-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes login-backdrop-in {
+  from {
+    background-color: rgb(0 0 0 / 0);
+    backdrop-filter: blur(0);
+  }
+
+  to {
+    background-color: rgb(0 0 0 / 0.3);
+    backdrop-filter: blur(12px);
+  }
+}
+
+.animate-login-in {
+  animation: login-in 220ms ease-out both;
+}
+
+.animate-login-backdrop-in {
+  animation: login-backdrop-in 220ms ease-out both;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(calc(100% + 1rem));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-toast-in {
+  animation: toast-in 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes toast-timer {
+  from {
+    transform: scaleX(1);
+  }
+
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.animate-toast-timer {
+  animation: toast-timer var(--toast-duration) linear forwards;
+}
+
+.animate-offer-panel-in {
+  animation: offer-panel-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes offer-panel-in {
+  from {
+    opacity: 0.75;
+    transform: translateX(100%);
+    box-shadow: 0 0 0 rgb(23 23 23 / 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-toast-in,
+  .animate-toast-timer,
+  .animate-offer-panel-in {
+    animation-duration: 1ms;
+  }
+}
