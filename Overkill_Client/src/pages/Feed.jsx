@@ -76,6 +76,9 @@ function Feed() {
       if (nextFilters[name]) nextSearchParams.set(name, nextFilters[name])
     })
 
+    setSelectedOffer(null)
+    setStatus('loading')
+    setPage(1)
     setFilters(nextFilters)
     setSearchParams(nextSearchParams, { replace: true })
   }
@@ -89,11 +92,10 @@ function Feed() {
   }, [])
 
   useEffect(() => {
-    let isCurrentRequest = true
+    const controller = new AbortController()
 
-    listOffers(filters, page)
+    listOffers(filters, page, controller.signal)
       .then(({ items: nextOffers, pagination: nextPagination }) => {
-        if (!isCurrentRequest) return
         setOffers(nextOffers)
         setPagination(nextPagination)
         setStatus('success')
@@ -103,12 +105,10 @@ function Feed() {
         })
       })
       .catch((error) => {
-        if (isCurrentRequest && error.name !== 'AbortError') setStatus('error')
+        if (error.name !== 'AbortError') setStatus('error')
       })
 
-    return () => {
-      isCurrentRequest = false
-    }
+    return () => controller.abort()
   }, [filters, page])
 
   useEffect(() => {
@@ -317,7 +317,7 @@ function Feed() {
                     
                     {status === 'loading'
                       ? 'Chargement…'
-                      : ` ${ offers.length } résultat${ offers.length > 1 ? 's' : '' }`}
+                      : `${pagination.total} résultat${pagination.total !== 1 ? 's' : ''}`}
                   </span>
                 </div>
                 <button
