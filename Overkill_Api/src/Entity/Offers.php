@@ -10,6 +10,11 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: OffersRepository::class)]
+#[ORM\Table(name: 'offers')]
+#[ORM\UniqueConstraint(
+    name: 'uniq_offer_source_external_url',
+    columns: ['source_id_id', 'external_url']
+)]
 class Offers
 {
     #[ORM\Id]

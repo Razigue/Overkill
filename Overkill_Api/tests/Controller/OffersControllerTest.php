@@ -162,6 +162,50 @@ class OffersControllerTest extends WebTestCase
         $this->assertSame('Développeur PHP / Symfony', $title);
     }
 
+    public function testPostOfferUpdatesExistingOfferFromSameSource(): void
+    {
+        [$company, $source, $category] = $this->createDependencies();
+        $externalUrl = 'https://epitech.eu/jobs/idempotent-' . uniqid();
+        $payload = [
+            'title' => 'Développeur initial',
+            'kind' => 'job',
+            'description' => 'Version initiale',
+            'company_id' => $company->getId(),
+            'source_id' => $source->getId(),
+            'category_id' => [$category->getId()],
+            'city' => 'Paris',
+            'isRemote' => null,
+            'salaryMin' => 45000,
+            'salaryMax' => 55000,
+            'salaryCurrency' => 'EUR',
+            'contract' => 'CDI',
+            'extractedSkills' => ['PHP'],
+            'externalUrl' => $externalUrl,
+            'latitude' => 48.8566,
+            'longitude' => 2.3522,
+            'publishedAt' => '2026-01-01T10:00:00Z',
+            'startsAt' => '2026-02-01T09:00:00Z',
+            'endsAt' => null,
+        ];
+
+        $this->client->request('POST', '/api/offers', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode($payload));
+        $this->assertResponseStatusCodeSame(201);
+        $firstId = json_decode($this->client->getResponse()->getContent(), true)['id'];
+
+        $payload['title'] = 'Développeur mis à jour';
+        $payload['externalUrl'] .= '/';
+        $this->client->request('POST', '/api/offers', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode($payload));
+
+        $this->assertResponseStatusCodeSame(200);
+        $updated = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertSame($firstId, $updated['id']);
+        $this->assertSame('Développeur mis à jour', $updated['title']);
+        $this->assertCount(1, static::getContainer()->get('doctrine')->getRepository(Offers::class)->findBy([
+            'source_id' => $source,
+            'external_url' => $externalUrl,
+        ]));
+    }
+
     public function testPostOfferCompanyNotFound(): void
     {
         [$company, $source, $category] = $this->createDependencies();
