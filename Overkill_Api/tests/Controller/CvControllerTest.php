@@ -196,4 +196,73 @@ class CvControllerTest extends WebTestCase
         $responseData = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertSame('Format non autorisé (PDF, DOC, DOCX uniquement)', $responseData['error']);
     }
+
+    // ==========================================
+    // 4. TESTS SUPPRESSION DES CVS (DELETE /api/cvs/{id})
+    // ==========================================
+
+    public function testDeleteCvUnauthorized(): void
+    {
+        $this->client->request('DELETE', '/api/cvs/1');
+
+        $this->assertResponseStatusCodeSame(401);
+    }
+
+    public function testDeleteCvForbiddenForAnotherUser(): void
+    {
+        [$owner] = $this->createAuthenticatedUser('cv_delete_owner@epitech.eu');
+        $entityManager = static::getContainer()->get('doctrine')->getManager();
+
+        $cv = (new Cv())
+            ->setOriginalName('private.pdf')
+            ->setFilePath('private-delete-test.pdf')
+            ->setUser($owner);
+        $entityManager->persist($cv);
+        $entityManager->flush();
+        $cvId = $cv->getId();
+
+        [, $otherToken] = $this->createAuthenticatedUser('cv_delete_other@epitech.eu');
+        $this->client->request(
+            'DELETE',
+            '/api/cvs/' . $cvId,
+            [],
+            [],
+            ['HTTP_AUTHORIZATION' => 'Bearer ' . $otherToken]
+        );
+
+        $this->assertResponseStatusCodeSame(403);
+        $this->assertNotNull($entityManager->getRepository(Cv::class)->find($cvId));
+    }
+
+    public function testDeleteCvRemovesRecordAndStoredFile(): void
+    {
+        [$user, $token] = $this->createAuthenticatedUser('cv_delete_success@epitech.eu');
+        $container = static::getContainer();
+        $entityManager = $container->get('doctrine')->getManager();
+        $filename = 'delete-test-' . uniqid() . '.pdf';
+        $storedPath = $container->getParameter('cvs_directory') . '/' . $filename;
+        file_put_contents($storedPath, '%PDF-1.4 delete test');
+
+        $cv = (new Cv())
+            ->setOriginalName('a-supprimer.pdf')
+            ->setFilePath($filename)
+            ->setUser($user);
+        $entityManager->persist($cv);
+        $entityManager->flush();
+        $cvId = $cv->getId();
+
+        $this->client->request(
+            'DELETE',
+            '/api/cvs/' . $cvId,
+            [],
+            [],
+            ['HTTP_AUTHORIZATION' => 'Bearer ' . $token]
+        );
+
+        $this->assertResponseStatusCodeSame(204);
+        $entityManager->clear();
+        $this->assertNull($entityManager->getRepository(Cv::class)->find($cvId));
+        $this->assertFileDoesNotExist($storedPath);
+    }
+
 }

@@ -97,6 +97,9 @@ function Header({ user: providedUser, onLogout }) {
                   <a href="/ressources/cv" className="block rounded-lg px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-[#faf7f4] hover:text-[#d2915c]">
                     Guide CV
                   </a>
+                  <a href="/ressources/analyse-ats" className="block rounded-lg px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-[#faf7f4] hover:text-[#d2915c]">
+                    Analyse de CV
+                  </a>
                   <a href="/ressources/offres" className="block rounded-lg px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-[#faf7f4] hover:text-[#d2915c]">
                     Guide des offres
                   </a>

@@ -99,6 +99,7 @@ class Offers
         $this->category_id = new ArrayCollection();
     }
 
+    #[Groups('offers:read')]
     public function getId(): ?int
     {
         return $this->id;

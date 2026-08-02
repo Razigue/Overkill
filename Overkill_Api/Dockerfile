@@ -18,6 +18,10 @@ RUN composer install --no-interaction --prefer-dist --no-scripts
 COPY . .
 RUN composer run-script post-install-cmd --no-interaction
 
+COPY docker/entrypoint.sh /usr/local/bin/overkill-entrypoint
+RUN chmod +x /usr/local/bin/overkill-entrypoint
+
 EXPOSE 8000
 
+ENTRYPOINT ["overkill-entrypoint"]
 CMD ["php", "-S", "0.0.0.0:8000", "-t", "public"]

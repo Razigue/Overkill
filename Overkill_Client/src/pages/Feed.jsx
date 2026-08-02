@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import Footer from '../components/Footer'
 import Header from '../components/Header'
 import { listOffers, offerFilterOptions } from '../services/offers'
+import { createApplication } from '../services/applications'
 import chevronDown from '../assets/icons/chevron-down.svg'
 import searchIcon from '../assets/icons/search.svg'
 import locationIcon from '../assets/icons/location.svg'
@@ -55,6 +56,7 @@ function Feed() {
   }))
   const [offers, setOffers] = useState([])
   const [selectedOffer, setSelectedOffer] = useState(null)
+  const [applicationPrompt, setApplicationPrompt] = useState(null)
   const [favorites, setFavorites] = useState(() => {
     // TODO API (GET /api/userfav) : charger ici les favoris de l'utilisateur connecté.
     // Conserver pour chaque entrée { favoriteId, offerId } : le DELETE attend l'ID du favori,
@@ -71,6 +73,8 @@ function Feed() {
   const lastFocusedElement = useRef(null)
   const filterButtonRef = useRef(null)
   const filterDialogRef = useRef(null)
+  const applicationDialogRef = useRef(null)
+  const applicationTriggerRef = useRef(null)
 
   const applyFilters = (nextFilters) => {
     const nextSearchParams = new URLSearchParams()
@@ -121,7 +125,10 @@ function Feed() {
   useEffect(() => {
     const handleEscape = (event) => {
       if (event.key !== 'Escape') return
-      if (selectedOffer) {
+      if (applicationPrompt && applicationPrompt.status !== 'saving') {
+        setApplicationPrompt(null)
+        window.requestAnimationFrame(() => applicationTriggerRef.current?.focus())
+      } else if (selectedOffer) {
         setSelectedOffer(null)
         window.requestAnimationFrame(() => lastFocusedElement.current?.focus())
       } else {
@@ -132,16 +139,22 @@ function Feed() {
 
     document.addEventListener('keydown', handleEscape)
     return () => document.removeEventListener('keydown', handleEscape)
-  }, [selectedOffer])
+  }, [applicationPrompt, selectedOffer])
 
   useEffect(() => {
     const pageContent = document.getElementById('feed-page-content')
-    const shouldLockPage = isFiltersOpen || (Boolean(selectedOffer) && isMobile)
+    const offerDetail = document.getElementById('offer-detail-panel')
+    const shouldLockPage = isFiltersOpen || Boolean(applicationPrompt) || (Boolean(selectedOffer) && isMobile)
 
     if (pageContent) {
       pageContent.inert = shouldLockPage
       if (shouldLockPage) pageContent.setAttribute('aria-hidden', 'true')
       else pageContent.removeAttribute('aria-hidden')
+    }
+    if (offerDetail) {
+      offerDetail.inert = Boolean(applicationPrompt)
+      if (applicationPrompt) offerDetail.setAttribute('aria-hidden', 'true')
+      else offerDetail.removeAttribute('aria-hidden')
     }
     document.body.style.overflow = shouldLockPage ? 'hidden' : ''
 
@@ -150,9 +163,13 @@ function Feed() {
         pageContent.inert = false
         pageContent.removeAttribute('aria-hidden')
       }
+      if (offerDetail) {
+        offerDetail.inert = false
+        offerDetail.removeAttribute('aria-hidden')
+      }
       document.body.style.overflow = ''
     }
-  }, [isFiltersOpen, isMobile, selectedOffer])
+  }, [applicationPrompt, isFiltersOpen, isMobile, selectedOffer])
 
 
 
@@ -245,6 +262,38 @@ function Feed() {
     setSelectedOffer(null)
     if (restoreFocus) {
       window.requestAnimationFrame(() => lastFocusedElement.current?.focus())
+    }
+  }
+
+  const handleExternalOfferClick = () => {
+    const isAuthenticated = Boolean(
+      localStorage.getItem('user') && localStorage.getItem('token'),
+    )
+    if (!isAuthenticated) return
+
+    applicationTriggerRef.current = document.activeElement
+    setApplicationPrompt({ offer: selectedOffer, status: 'idle', message: '' })
+  }
+
+  const confirmApplication = async () => {
+    if (!applicationPrompt?.offer || applicationPrompt.status === 'saving') return
+
+    setApplicationPrompt((current) => ({ ...current, status: 'saving', message: '' }))
+    try {
+      const result = await createApplication(applicationPrompt.offer.id)
+      setApplicationPrompt((current) => ({
+        ...current,
+        status: 'success',
+        message: result.alreadyExists
+          ? 'Cette candidature était déjà enregistrée dans votre profil.'
+          : 'La candidature a été ajoutée à votre profil.',
+      }))
+    } catch (error) {
+      setApplicationPrompt((current) => ({
+        ...current,
+        status: 'error',
+        message: error.message,
+      }))
     }
   }
 
@@ -443,6 +492,22 @@ function Feed() {
           isModal={isMobile}
           onClose={closeOffer}
           onFavorite={() => toggleFavorite(selectedOffer.id)}
+          onExternalVisit={handleExternalOfferClick}
+        />
+      )}
+
+      {applicationPrompt && (
+        <ApplicationConfirmDialog
+          dialogRef={applicationDialogRef}
+          offer={applicationPrompt.offer}
+          status={applicationPrompt.status}
+          message={applicationPrompt.message}
+          onConfirm={confirmApplication}
+          onClose={() => {
+            if (applicationPrompt.status === 'saving') return
+            setApplicationPrompt(null)
+            window.requestAnimationFrame(() => applicationTriggerRef.current?.focus())
+          }}
         />
       )}
     </div>
@@ -723,9 +788,10 @@ function OfferCard({ offer, isSelected, isFavorite, onSelect, onFavorite }) {
   )
 }
 
-function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite }) {
+function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite, onExternalVisit }) {
   return (
     <aside
+      id="offer-detail-panel"
       className="animate-offer-panel-in fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-white shadow-[-12px_0_32px_rgba(23,23,23,0.14)] sm:w-[min(92vw,42rem)] lg:w-1/2 lg:max-w-[50vw]"
       role="dialog"
       aria-modal={isModal}
@@ -821,9 +887,10 @@ function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite }) {
           href={offer.externalUrl}
           target="_blank"
           rel="noreferrer"
+          onClick={onExternalVisit}
           className="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-black px-5 text-sm font-semibold text-white transition-colors hover:bg-[#a96531] focus:outline-none focus:ring-4 focus:ring-[#d2915c]/20"
         >
-          Voir l’offre originale
+          Postuler sur le site d’origine
           <img src={externalLinkIcon} alt="" className="h-4 w-4 invert" />
         </a>
       </div>
@@ -831,6 +898,75 @@ function OfferDetail({ offer, isFavorite, isModal, onClose, onFavorite }) {
   )
 }
 
+function ApplicationConfirmDialog({ dialogRef, offer, status, message, onConfirm, onClose }) {
+  const isSaving = status === 'saving'
+  const isSuccess = status === 'success'
+
+  useEffect(() => {
+    const handleFocusTrap = (event) => {
+      if (event.key !== 'Tab') return
+
+      const focusableElements = dialogRef.current?.querySelectorAll('button:not([disabled])')
+      if (!focusableElements?.length) return
+
+      const firstElement = focusableElements[0]
+      const lastElement = focusableElements[focusableElements.length - 1]
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault()
+        lastElement.focus()
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault()
+        firstElement.focus()
+      }
+    }
+
+    document.addEventListener('keydown', handleFocusTrap)
+    return () => document.removeEventListener('keydown', handleFocusTrap)
+  }, [dialogRef])
+
+  return (
+    <div
+      className="animate-login-backdrop-in fixed inset-0 z-[70] flex items-center justify-center bg-black/40 px-4 py-8 backdrop-blur-sm"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !isSaving) onClose()
+      }}
+    >
+      <section
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="application-confirm-title"
+        aria-describedby="application-confirm-description"
+        className="animate-login-in w-full max-w-lg rounded-2xl bg-white p-6 shadow-[0_24px_70px_rgba(0,0,0,0.3)] sm:p-8"
+      >
+        <span className="inline-flex rounded-full bg-[#fbf2eb] px-3 py-1 text-xs font-bold text-[#75421d]">Suivi de candidature</span>
+        <h2 id="application-confirm-title" className="mt-5 text-2xl font-black tracking-[-0.02em] text-black">
+          {isSuccess ? 'Candidature enregistrée' : 'Avez-vous postulé ?'}
+        </h2>
+        <p id="application-confirm-description" className="mt-3 text-sm leading-6 text-gray-600">
+          {isSuccess
+            ? message
+            : <>Confirmez uniquement si vous avez envoyé votre candidature pour <strong className="font-bold text-black">{offer.title}</strong> chez {offer.company}.</>}
+        </p>
+        {status === 'error' && (
+          <p role="alert" className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
+            {message} Vous pouvez réessayer.
+          </p>
+        )}
+        <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          {isSuccess ? (
+            <button type="button" autoFocus onClick={onClose} className="min-h-12 rounded-xl bg-black px-6 text-sm font-bold text-white transition hover:bg-[#a96531] focus:outline-none focus:ring-4 focus:ring-[#d2915c]/20">Terminer</button>
+          ) : (
+            <>
+              <button type="button" onClick={onClose} disabled={isSaving} className="min-h-12 rounded-xl border border-gray-300 bg-white px-5 text-sm font-bold text-gray-700 transition hover:border-black hover:text-black focus:outline-none focus:ring-4 focus:ring-[#d2915c]/20 disabled:cursor-not-allowed disabled:opacity-50">Non, pas cette fois</button>
+              <button type="button" autoFocus onClick={onConfirm} disabled={isSaving} className="min-h-12 rounded-xl bg-black px-6 text-sm font-bold text-white transition hover:bg-[#a96531] focus:outline-none focus:ring-4 focus:ring-[#d2915c]/20 disabled:cursor-wait disabled:opacity-70">{isSaving ? 'Enregistrement…' : 'Oui, j’ai postulé'}</button>
+            </>
+          )}
+        </div>
+      </section>
+    </div>
+  )
+}
 function DetailStat({ term, description, className = '' }) {
   return (
     <div className={`border-gray-200 px-3 py-4 [&:not(:last-child)]:border-r ${className}`}>
