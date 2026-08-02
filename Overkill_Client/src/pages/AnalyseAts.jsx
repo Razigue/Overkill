@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import PublicHeader from '../components/PublicHeader'
+import Header from '../components/Header'
 import Footer from '../components/Footer'
 import Background from '../assets/images/Overkill_Background.png'
 
@@ -165,7 +165,7 @@ function AnalyseAts() {
           __html: '<!-- THESIS: un atelier de diagnostic montre le passage du document brut aux priorités actionnables, sans tableau de bord abstrait. OWN-WORLD: crème, encre et cuivre Overkill, surfaces papier, traits nets et contrôles tactiles. STORY: comprendre la portée, déposer, consentir, analyser, corriger. FIRST VIEWPORT: promesse à gauche et panneau de dépôt clair immédiatement opérable à droite. FORM: grille de diagnostic, candidate 5, staging direct, seed d5af6c92. -->',
         }}
       />
-      <PublicHeader />
+      <Header />
 
       <main className="flex-1">
         <section className="relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${Background})` }}>
