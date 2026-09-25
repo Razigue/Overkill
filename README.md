@@ -172,8 +172,8 @@ n8n et LM Studio ne sont requis que pour l’ingestion et l’analyse ATS. Le ca
 ### 1. Récupérer le projet
 
 ```bash
-git clone <URL_DU_DEPOT>
-cd W-YEP-200-PAR-2-1-job_aggregator-2
+git clone git@github.com:Razigue/Overkill.git
+cd Overkill
 ```
 
 Si le dépôt est déjà présent, placez-vous simplement à sa racine.
